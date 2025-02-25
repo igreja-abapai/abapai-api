@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: abapai
+      POSTGRES_PASSWORD: abapai
+      POSTGRES_DB: abapai
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    user: postgres
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    container_name: abapai_app
+    command:
+      [
+        './wait-for-it.sh',
+        'db:5432',
+        '--strict',
+        '--timeout=300',
+        '--',
+        'sh',
+        '-c',
+        'npm run migration:run && npm run dev',
+      ]
+    environment:
+      - PORT=3333
+    ports:
+      - 3333:3333
+    depends_on:
+      - db
+    volumes:
+      - ./src:/abapai_app/src
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: abapai_pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=abapai@abapai.com.br
+      - PGADMIN_DEFAULT_PASSWORD=abapai
+    ports:
+      - 5555:80
+    depends_on:
+      - db
+
+volumes:
+  pg-data:
