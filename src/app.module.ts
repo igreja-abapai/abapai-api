@@ -5,6 +5,7 @@ import { DatabaseSeederService } from './database/seeder/database-seeder.service
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { VerificationCodeModule } from './modules/verification-code/verification-code.module';
+import { PrayerRequestModule } from './modules/prayer-request/prayer-request.module';
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { VerificationCodeModule } from './modules/verification-code/verification
         UserModule,
         AuthModule,
         VerificationCodeModule,
+        PrayerRequestModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],
