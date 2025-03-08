@@ -11,7 +11,11 @@ export class PrayerRequestService {
     }
 
     findAll() {
-        return this.prayerRequestRepository.find();
+        return this.prayerRequestRepository.find({
+            order: {
+                id: 'DESC',
+            },
+        });
     }
 
     // findOne(id: number) {
