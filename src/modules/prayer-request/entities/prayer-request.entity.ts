@@ -3,13 +3,13 @@ import { IdTimestampBaseEntity } from '../../../shared/common/id-timestamp.base-
 
 @Entity()
 export class PrayerRequest extends IdTimestampBaseEntity {
-    @Column()
+    @Column({ default: 'Anônimo' })
     name: string;
 
-    @Column()
+    @Column({ nullable: true })
     phone: string;
 
-    @Column()
+    @Column({ nullable: true })
     area: string;
 
     @Column()

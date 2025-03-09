@@ -6,6 +6,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { VerificationCodeModule } from './modules/verification-code/verification-code.module';
 import { PrayerRequestModule } from './modules/prayer-request/prayer-request.module';
+import { MemberModule } from './modules/member/member.module';
+import { AddressModule } from './modules/address/address.module';
 
 @Module({
     imports: [
@@ -17,6 +19,8 @@ import { PrayerRequestModule } from './modules/prayer-request/prayer-request.mod
         AuthModule,
         VerificationCodeModule,
         PrayerRequestModule,
+        MemberModule,
+        AddressModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],
