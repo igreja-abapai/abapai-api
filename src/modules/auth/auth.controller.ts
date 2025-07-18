@@ -7,6 +7,7 @@ import { RefreshTokenDto } from './dtos/refresh-token.dto';
 import { ResetPasswordRequestDto } from './dtos/reset-password-request.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { VerificationCodeValidationDto } from './dtos/verification-code-validation.dto';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -48,5 +49,12 @@ export class AuthController {
     @Post('refresh-token')
     refreshToken(@Body() { refreshToken }: RefreshTokenDto) {
         return this.authService.refreshToken(refreshToken);
+    }
+
+    @Patch('change-password')
+    @UseGuards(AuthGuard('jwt'))
+    async changePassword(@Request() req, @Body() body: ChangePasswordDto) {
+        const userId = req.user.id;
+        return this.authService.changePassword(userId, body);
     }
 }

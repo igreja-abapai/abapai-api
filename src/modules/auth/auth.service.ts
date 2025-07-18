@@ -158,4 +158,26 @@ export class AuthService {
 
         return this.userService.update(sub.userId, { password });
     }
+
+    async changePassword(userId: number, body: { currentPassword: string; newPassword: string }) {
+        const user = await this.userService.findOne(userId);
+        if (!user) {
+            throw new CustomNotFoundException({
+                code: 'user-not-found',
+                message: 'User not found',
+            });
+        }
+        const passwordMatch = await this.encryptionService.compare(
+            body.currentPassword,
+            user.password,
+        );
+        if (!passwordMatch) {
+            throw new CustomUnauthorizedException({
+                code: 'invalid-current-password',
+                message: 'Current password is incorrect',
+            });
+        }
+        await this.userService.update(userId, { password: body.newPassword });
+        return { message: 'Password changed successfully' };
+    }
 }

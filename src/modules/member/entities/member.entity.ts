@@ -76,4 +76,7 @@ export class Member extends IdTimestampBaseEntity {
 
     @Column({ nullable: true })
     areaOfInterest: string;
+
+    @Column({ default: true })
+    isActive: boolean;
 }
