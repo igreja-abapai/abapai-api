@@ -7,24 +7,36 @@ export default class PermissionSeeder implements Seeder {
         const permissionRepository = dataSource.getRepository(Permission);
 
         const permissions = [
-            // Member permissions
-            { code: 'view_members', description: 'View members' },
-            { code: 'create_members', description: 'Create members' },
-            { code: 'edit_members', description: 'Edit members' },
-            { code: 'delete_members', description: 'Delete members' },
+            // Permissões de membros
+            { code: 'visualizar_membros', description: 'Permissão para visualizar membros' },
+            { code: 'criar_membros', description: 'Permissão para criar membros' },
+            { code: 'editar_membros', description: 'Permissão para editar membros' },
+            { code: 'excluir_membros', description: 'Permissão para excluir membros' },
 
-            // Prayer request permissions
-            { code: 'view_prayer_requests', description: 'View prayer requests' },
-            { code: 'create_prayer_requests', description: 'Create prayer requests' },
-            { code: 'delete_prayer_requests', description: 'Delete prayer requests' },
+            // Permissões de pedidos de oração
+            {
+                code: 'visualizar_pedidos_oracao',
+                description: 'Permissão para visualizar pedidos de oração',
+            },
+            { code: 'criar_pedidos_oracao', description: 'Permissão para criar pedidos de oração' },
+            {
+                code: 'excluir_pedidos_oracao',
+                description: 'Permissão para excluir pedidos de oração',
+            },
 
-            // User permissions
-            { code: 'view_users', description: 'View users' },
-            { code: 'create_users', description: 'Create users' },
-            { code: 'edit_users', description: 'Edit users' },
-            { code: 'delete_users', description: 'Delete users' },
-            { code: 'change_user_password', description: 'Change user password' },
-            { code: 'change_user_roles', description: 'Change user roles' },
+            // Permissões de usuários
+            { code: 'visualizar_usuarios', description: 'Permissão para visualizar usuários' },
+            { code: 'criar_usuarios', description: 'Permissão para criar usuários' },
+            { code: 'editar_usuarios', description: 'Permissão para editar usuários' },
+            { code: 'excluir_usuarios', description: 'Permissão para excluir usuários' },
+            {
+                code: 'alterar_senha_usuario',
+                description: 'Permissão para alterar senha de usuário',
+            },
+            {
+                code: 'alterar_cargo_usuario',
+                description: 'Permissão para alterar cargos de usuário',
+            },
         ];
 
         for (const permissionData of permissions) {
