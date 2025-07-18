@@ -34,6 +34,9 @@ export class Member extends IdTimestampBaseEntity {
     @Column({ type: 'enum', enum: EducationLevel })
     educationLevel: EducationLevel;
 
+    @Column({ nullable: true })
+    addressId: number;
+
     @OneToOne(() => Address)
     @JoinColumn({ name: 'addressId' })
     address: Address;

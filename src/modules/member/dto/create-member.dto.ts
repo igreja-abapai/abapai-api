@@ -1,4 +1,13 @@
-import { IsBoolean, IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+    IsBoolean,
+    IsDateString,
+    IsEmail,
+    IsEnum,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+} from 'class-validator';
 import { Gender } from '../entities/gender.enum';
 import { MaritalStatus } from '../entities/marital-status.enum';
 import { EducationLevel } from '../entities/education-level.enum';
@@ -41,11 +50,11 @@ export class CreateMemberDto {
     educationLevel: EducationLevel;
 
     @IsNumber()
-    addresssId: number;
+    addressId: number;
 
     @IsOptional()
     @IsString()
-    yearOfConverson: string;
+    yearOfConversion: string;
 
     @IsNotEmpty()
     @IsString()
@@ -84,8 +93,8 @@ export class CreateMemberDto {
     currentPosition: string;
 
     @IsOptional()
-    @IsString()
-    wantsToBeAVolunteer: string;
+    @IsBoolean()
+    wantsToBeAVolunteer: boolean;
 
     @IsOptional()
     @IsString()

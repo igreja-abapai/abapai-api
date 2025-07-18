@@ -1,26 +1,50 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { Member } from './entities/member.entity';
 
 @Injectable()
 export class MemberService {
-  create(createMemberDto: CreateMemberDto) {
-    return 'This action adds a new member';
-  }
+    constructor(
+        @InjectRepository(Member)
+        private memberRepository: Repository<Member>,
+    ) {}
 
-  findAll() {
-    return `This action returns all member`;
-  }
+    async create(createMemberDto: CreateMemberDto): Promise<Member> {
+        const member = this.memberRepository.create({
+            ...createMemberDto,
+            birthdate: new Date(createMemberDto.birthdate),
+            addressId: createMemberDto.addressId,
+        });
+        return await this.memberRepository.save(member);
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} member`;
-  }
+    async findAll(): Promise<Member[]> {
+        return await this.memberRepository.find({
+            relations: ['address'],
+        });
+    }
 
-  update(id: number, updateMemberDto: UpdateMemberDto) {
-    return `This action updates a #${id} member`;
-  }
+    async findOne(id: number): Promise<Member> {
+        return await this.memberRepository.findOne({
+            where: { id },
+            relations: ['address'],
+        });
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} member`;
-  }
+    async update(id: number, updateMemberDto: UpdateMemberDto): Promise<Member> {
+        const updateData: any = { ...updateMemberDto };
+        if (updateMemberDto.birthdate) {
+            updateData.birthdate = new Date(updateMemberDto.birthdate);
+        }
+
+        await this.memberRepository.update(id, updateData);
+        return await this.findOne(id);
+    }
+
+    async remove(id: number): Promise<void> {
+        await this.memberRepository.delete(id);
+    }
 }
