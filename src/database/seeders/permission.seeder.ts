@@ -7,7 +7,6 @@ export default class PermissionSeeder implements Seeder {
         const permissionRepository = dataSource.getRepository(Permission);
 
         const permissions = [
-            // Permissões de membros
             { code: 'visualizar_membros', description: 'Permissão para visualizar membros' },
             { code: 'criar_membros', description: 'Permissão para criar membros' },
             { code: 'editar_membros', description: 'Permissão para editar membros' },
