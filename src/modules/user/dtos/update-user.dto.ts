@@ -1,6 +1,5 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { LettersOnly } from '../../../shared/decorators/letters-only.decorator';
-import { IsPasswordStrong } from '../../../shared/decorators/password-strength.decorator';
 
 export class UpdateUserDto {
     @IsOptional()
@@ -27,6 +26,6 @@ export class UpdateUserDto {
     @IsOptional()
     @IsNotEmpty()
     @IsString()
-    @IsPasswordStrong()
+    @MinLength(6)
     password?: string;
 }

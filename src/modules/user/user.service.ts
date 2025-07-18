@@ -30,6 +30,12 @@ export class UserService {
         });
     }
 
+    async findOne(id: number): Promise<User> {
+        return await this.userRepository.findOne({
+            where: { id },
+        });
+    }
+
     async create(user: CreateUserDto) {
         user.email = user.email.toLowerCase();
 
@@ -71,5 +77,9 @@ export class UserService {
             message: 'Successfully updated!',
             userId: id,
         };
+    }
+
+    async remove(id: number): Promise<void> {
+        await this.userRepository.delete(id);
     }
 }
