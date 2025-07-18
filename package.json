@@ -27,8 +27,8 @@
         "migration:revert": "npm run typeorm -- migration:revert",
         "typeorm:test": "npm run build && cross-env NODE_ENV=test npx typeorm -d dist/database/data-source.js",
         "migration:test:run": "npm run typeorm:test -- migration:run",
-        "prepare": "husky",
-        "seed": "ts-node -r tsconfig-paths/register ./src/database/seeder/run-seeder.ts"
+        "seed": "npm run build && node dist/database/seed.js",
+        "prepare": "husky"
     },
     "dependencies": {
         "@nestjs/common": "^10.0.0",

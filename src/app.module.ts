@@ -8,6 +8,8 @@ import { VerificationCodeModule } from './modules/verification-code/verification
 import { PrayerRequestModule } from './modules/prayer-request/prayer-request.module';
 import { MemberModule } from './modules/member/member.module';
 import { AddressModule } from './modules/address/address.module';
+import { PermissionModule } from './modules/permission/permission.module';
+import { RoleModule } from './modules/role/role.module';
 
 @Module({
     imports: [
@@ -21,6 +23,8 @@ import { AddressModule } from './modules/address/address.module';
         PrayerRequestModule,
         MemberModule,
         AddressModule,
+        PermissionModule,
+        RoleModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],

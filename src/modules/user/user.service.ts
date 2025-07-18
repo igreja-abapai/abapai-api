@@ -19,7 +19,9 @@ export class UserService {
     ) {}
 
     async findAll(): Promise<User[]> {
-        return await this.userRepository.find();
+        return await this.userRepository.find({
+            relations: ['role', 'role.permissions'],
+        });
     }
 
     async findByEmail(email: string): Promise<User> {
@@ -27,12 +29,14 @@ export class UserService {
             where: {
                 email,
             },
+            relations: ['role', 'role.permissions'],
         });
     }
 
     async findOne(id: number): Promise<User> {
         return await this.userRepository.findOne({
             where: { id },
+            relations: ['role', 'role.permissions'],
         });
     }
 

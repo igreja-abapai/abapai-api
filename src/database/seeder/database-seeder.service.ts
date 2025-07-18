@@ -1,26 +1,33 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { UserService } from 'src/modules/user/user.service';
+import { Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import PermissionSeeder from '../seeders/permission.seeder';
+import RoleSeeder from '../seeders/role.seeder';
+import UserSeeder from '../seeders/user.seeder';
 
 @Injectable()
-export class DatabaseSeederService implements OnModuleInit {
-    constructor(private readonly userService: UserService) {}
+export class DatabaseSeederService {
+    constructor(private readonly dataSource: DataSource) {}
 
-    async onModuleInit() {
-        this.seedUser();
-    }
+    async seedDatabase() {
+        try {
+            console.log('🌱 Starting database seeding...');
 
-    async seedUser() {
-        const newUser = {
-            firstName: 'Raimundo',
-            lastName: 'Feliciano',
-            email: 'raimundo.feliciano@hotmail.com',
-            password: 'Admin1234',
-        };
+            // Run seeders in order (permissions -> roles -> users)
+            const permissionSeeder = new PermissionSeeder();
+            await permissionSeeder.run(this.dataSource);
+            console.log('✅ Permissions seeded');
 
-        const existingUser = await this.userService.findByEmail(newUser.email);
+            const roleSeeder = new RoleSeeder();
+            await roleSeeder.run(this.dataSource);
+            console.log('✅ Roles seeded');
 
-        if (!existingUser) {
-            this.userService.create(newUser);
+            const userSeeder = new UserSeeder();
+            await userSeeder.run(this.dataSource);
+            console.log('✅ Users seeded');
+
+            console.log('🎉 Database seeding completed successfully!');
+        } catch (error) {
+            console.error('❌ Database seeding failed:', error);
         }
     }
 }
