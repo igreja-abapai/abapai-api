@@ -6,8 +6,8 @@ import { PrayerRequest } from './entities/prayer-request.entity';
 import { PrayerRequestRepository } from './prayer-request.repository';
 
 @Module({
-imports: [TypeOrmModule.forFeature([PrayerRequest])],
-  controllers: [PrayerRequestController],
-  providers: [PrayerRequestService, PrayerRequestRepository],
+    imports: [TypeOrmModule.forFeature([PrayerRequest])],
+    controllers: [PrayerRequestController],
+    providers: [PrayerRequestService, PrayerRequestRepository],
 })
 export class PrayerRequestModule {}

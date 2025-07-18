@@ -7,4 +7,4 @@ export enum EducationLevel {
     MASTER = 'Mestrado',
     DOCTORATE = 'Doutorado',
     OTHER = 'Outro',
-  }
+}
