@@ -7,6 +7,7 @@ import {
     IsNumber,
     IsOptional,
     IsString,
+    ValidateIf,
 } from 'class-validator';
 import { Gender } from '../entities/gender.enum';
 import { MaritalStatus } from '../entities/marital-status.enum';
@@ -34,7 +35,8 @@ export class CreateMemberDto {
     phone: string;
 
     @IsOptional()
-    @IsEmail()
+    @ValidateIf((o) => o.email !== undefined && o.email !== null && o.email !== '')
+    @IsEmail({}, { message: 'Email deve ter um formato válido' })
     email: string;
 
     @IsNotEmpty()
