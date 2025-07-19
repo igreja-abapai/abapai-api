@@ -99,4 +99,8 @@ export class CreateMemberDto {
     @IsOptional()
     @IsString()
     areaOfInterest: string;
+
+    @IsOptional()
+    @IsString()
+    photoUrl: string;
 }

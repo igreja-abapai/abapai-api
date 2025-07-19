@@ -10,6 +10,7 @@ import { MemberModule } from './modules/member/member.module';
 import { AddressModule } from './modules/address/address.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { RoleModule } from './modules/role/role.module';
+import { AwsModule } from './modules/aws/aws.module';
 
 @Module({
     imports: [
@@ -25,6 +26,7 @@ import { RoleModule } from './modules/role/role.module';
         AddressModule,
         PermissionModule,
         RoleModule,
+        AwsModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],
