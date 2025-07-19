@@ -44,6 +44,12 @@ export class Member extends IdTimestampBaseEntity {
     @Column({ nullable: true })
     yearOfConversion: string;
 
+    @Column({ nullable: true })
+    yearOfBaptism: string;
+
+    @Column({ nullable: true })
+    placeOfBirth: string;
+
     @Column()
     occupation: string;
 

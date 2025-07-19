@@ -56,6 +56,14 @@ export class CreateMemberDto {
     @IsString()
     yearOfConversion: string;
 
+    @IsOptional()
+    @IsString()
+    yearOfBaptism: string;
+
+    @IsOptional()
+    @IsString()
+    placeOfBirth: string;
+
     @IsNotEmpty()
     @IsString()
     occupation: string;

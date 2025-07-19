@@ -1,4 +1,4 @@
-import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Column } from 'typeorm';
 
 export abstract class IdTimestampBaseEntity {
     @PrimaryGeneratedColumn()
@@ -9,4 +9,10 @@ export abstract class IdTimestampBaseEntity {
 
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
+
+    @Column({ name: 'created_by', nullable: true })
+    createdBy: number;
+
+    @Column({ name: 'updated_by', nullable: true })
+    updatedBy: number;
 }

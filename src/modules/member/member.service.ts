@@ -12,11 +12,12 @@ export class MemberService {
         private memberRepository: Repository<Member>,
     ) {}
 
-    async create(createMemberDto: CreateMemberDto): Promise<Member> {
+    async create(createMemberDto: CreateMemberDto, userId: number): Promise<Member> {
         const member = this.memberRepository.create({
             ...createMemberDto,
             birthdate: new Date(createMemberDto.birthdate),
             addressId: createMemberDto.addressId,
+            createdBy: userId,
         });
         return await this.memberRepository.save(member);
     }
@@ -34,8 +35,11 @@ export class MemberService {
         });
     }
 
-    async update(id: number, updateMemberDto: UpdateMemberDto): Promise<Member> {
-        const updateData: any = { ...updateMemberDto };
+    async update(id: number, updateMemberDto: UpdateMemberDto, userId: number): Promise<Member> {
+        const updateData: any = {
+            ...updateMemberDto,
+            updatedBy: userId,
+        };
         if (updateMemberDto.birthdate) {
             updateData.birthdate = new Date(updateMemberDto.birthdate);
         }
