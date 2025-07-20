@@ -47,7 +47,6 @@ export class AuthService {
 
         const tokenSub: Record<string, unknown> = {
             userId: user.id,
-            email: user.email,
         };
 
         const token = this.tokenService.createPair(tokenSub);
@@ -79,7 +78,7 @@ export class AuthService {
             });
         }
 
-        const { userId, email } = decodeResponse.sub;
+        const { userId } = decodeResponse.sub;
 
         if (!userId) {
             throw new CustomForbiddenException({
@@ -88,7 +87,7 @@ export class AuthService {
             });
         }
 
-        return this.tokenService.createPair({ userId, email });
+        return this.tokenService.createPair({ userId });
     }
 
     async requestPasswordReset(email: string) {
@@ -132,7 +131,6 @@ export class AuthService {
         const tokenSub: Record<string, unknown> = {
             code: validCode.code,
             userId: user.id,
-            email: user.email,
         };
 
         const token = this.tokenService.create(tokenSub, { expiresIn: '1h' });
@@ -148,7 +146,15 @@ export class AuthService {
 
         const { sub } = this.tokenService.decode(token);
 
-        const validCode = await this.verificationCodeService.validate(sub.code, sub.email);
+        const user = await this.userService.findOne(sub.userId);
+        if (!user) {
+            throw new CustomUnauthorizedException({
+                code: 'invalid-token',
+                message: 'This token is invalid or has already been used',
+            });
+        }
+
+        const validCode = await this.verificationCodeService.validate(sub.code, user.email);
 
         if (!validCode.valid) {
             throw new CustomUnauthorizedException({
