@@ -11,6 +11,8 @@ import { AddressModule } from './modules/address/address.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { RoleModule } from './modules/role/role.module';
 import { AwsModule } from './modules/aws/aws.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
     imports: [
@@ -27,6 +29,8 @@ import { AwsModule } from './modules/aws/aws.module';
         PermissionModule,
         RoleModule,
         AwsModule,
+        ScheduleModule.forRoot(),
+        NotificationModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],

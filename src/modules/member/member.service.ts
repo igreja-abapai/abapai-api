@@ -51,4 +51,12 @@ export class MemberService {
     async remove(id: number): Promise<void> {
         await this.memberRepository.delete(id);
     }
+
+    async findMembersWithBirthdayToday(month: number, day: number): Promise<Member[]> {
+        return await this.memberRepository
+            .createQueryBuilder('member')
+            .where('EXTRACT(MONTH FROM member.birthdate) = :month', { month })
+            .andWhere('EXTRACT(DAY FROM member.birthdate) = :day', { day })
+            .getMany();
+    }
 }

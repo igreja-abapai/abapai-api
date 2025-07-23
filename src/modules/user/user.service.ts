@@ -86,4 +86,12 @@ export class UserService {
     async remove(id: number): Promise<void> {
         await this.userRepository.delete(id);
     }
+
+    async findUsersWithRoles(roles: string[]): Promise<User[]> {
+        return await this.userRepository
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.role', 'role')
+            .where('role.name IN (:...roles)', { roles })
+            .getMany();
+    }
 }
