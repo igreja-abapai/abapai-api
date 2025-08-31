@@ -113,4 +113,28 @@ export class CreateMemberDto {
     @IsOptional()
     @IsString()
     photoUrl: string;
+
+    @IsOptional()
+    @IsNumber()
+    childrenCount: number;
+
+    @IsOptional()
+    @IsString()
+    fatherName: string;
+
+    @IsOptional()
+    @IsString()
+    motherName: string;
+
+    @IsOptional()
+    @IsString()
+    lastPositionPeriod: string;
+
+    @IsOptional()
+    @IsString()
+    baptismPlace: string;
+
+    @IsOptional()
+    @IsString()
+    observations: string;
 }

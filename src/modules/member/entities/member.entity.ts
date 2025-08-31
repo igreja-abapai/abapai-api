@@ -86,6 +86,24 @@ export class Member extends IdTimestampBaseEntity {
     @Column({ nullable: true })
     photoUrl: string;
 
+    @Column({ nullable: true })
+    childrenCount: number;
+
+    @Column({ nullable: true })
+    fatherName: string;
+
+    @Column({ nullable: true })
+    motherName: string;
+
+    @Column({ nullable: true })
+    lastPositionPeriod: string;
+
+    @Column({ nullable: true })
+    baptismPlace: string;
+
+    @Column({ type: 'text', nullable: true })
+    observations: string;
+
     @Column({ default: true })
     isActive: boolean;
 }
