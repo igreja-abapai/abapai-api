@@ -12,6 +12,7 @@ import {
 import { Gender } from '../entities/gender.enum';
 import { MaritalStatus } from '../entities/marital-status.enum';
 import { EducationLevel } from '../entities/education-level.enum';
+import { AdmissionType } from '../entities/admission-type.enum';
 
 export class CreateMemberDto {
     @IsNotEmpty()
@@ -137,4 +138,12 @@ export class CreateMemberDto {
     @IsOptional()
     @IsString()
     observations: string;
+
+    @IsOptional()
+    @IsDateString()
+    admissionDate: string;
+
+    @IsOptional()
+    @IsEnum(AdmissionType)
+    admissionType: AdmissionType;
 }

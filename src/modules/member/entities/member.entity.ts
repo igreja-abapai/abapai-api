@@ -4,6 +4,7 @@ import { Address } from '../../address/entities/address.entity';
 import { EducationLevel } from './education-level.enum';
 import { Gender } from './gender.enum';
 import { MaritalStatus } from './marital-status.enum';
+import { AdmissionType } from './admission-type.enum';
 
 @Entity()
 export class Member extends IdTimestampBaseEntity {
@@ -103,6 +104,12 @@ export class Member extends IdTimestampBaseEntity {
 
     @Column({ type: 'text', nullable: true })
     observations: string;
+
+    @Column({ type: 'date', nullable: true })
+    admissionDate: Date;
+
+    @Column({ type: 'enum', enum: AdmissionType, nullable: true })
+    admissionType: AdmissionType;
 
     @Column({ default: true })
     isActive: boolean;
