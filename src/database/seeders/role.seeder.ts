@@ -26,6 +26,7 @@ export default class RoleSeeder implements Seeder {
                     'excluir_usuarios',
                     'alterar_senha_usuario',
                     'alterar_cargo_usuario',
+                    'gerenciar_website',
                 ],
             },
             {

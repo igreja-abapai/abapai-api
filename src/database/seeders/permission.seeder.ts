@@ -36,6 +36,12 @@ export default class PermissionSeeder implements Seeder {
                 code: 'alterar_cargo_usuario',
                 description: 'Permissão para alterar cargos de usuário',
             },
+
+            // Permissões de website
+            {
+                code: 'gerenciar_website',
+                description: 'Permissão para gerenciar configurações do website',
+            },
         ];
 
         for (const permissionData of permissions) {
