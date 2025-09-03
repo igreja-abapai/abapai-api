@@ -13,10 +13,20 @@ export class MemberService {
     ) {}
 
     async create(createMemberDto: CreateMemberDto, userId: number): Promise<Member> {
+        const processedData = { ...createMemberDto };
+
+        if (processedData.childrenCount === null || processedData.childrenCount === undefined) {
+            processedData.childrenCount = undefined;
+        }
+
+        if (processedData.admissionType === null || processedData.admissionType === undefined) {
+            processedData.admissionType = undefined;
+        }
+
         const member = this.memberRepository.create({
-            ...createMemberDto,
-            birthdate: new Date(createMemberDto.birthdate),
-            addressId: createMemberDto.addressId,
+            ...processedData,
+            birthdate: new Date(processedData.birthdate),
+            addressId: processedData.addressId,
             createdBy: userId,
         });
         return await this.memberRepository.save(member);
@@ -36,12 +46,25 @@ export class MemberService {
     }
 
     async update(id: number, updateMemberDto: UpdateMemberDto, userId: number): Promise<Member> {
+        // Preprocess the data to handle empty strings for numeric fields
+        const processedData = { ...updateMemberDto };
+
+        // Convert empty strings to undefined for numeric fields
+        if (processedData.childrenCount === null || processedData.childrenCount === undefined) {
+            processedData.childrenCount = undefined;
+        }
+
+        // Convert empty strings to undefined for enum fields
+        if (processedData.admissionType === null || processedData.admissionType === undefined) {
+            processedData.admissionType = undefined;
+        }
+
         const updateData: any = {
-            ...updateMemberDto,
+            ...processedData,
             updatedBy: userId,
         };
-        if (updateMemberDto.birthdate) {
-            updateData.birthdate = new Date(updateMemberDto.birthdate);
+        if (updateData.birthdate) {
+            updateData.birthdate = new Date(updateData.birthdate);
         }
 
         await this.memberRepository.update(id, updateData);

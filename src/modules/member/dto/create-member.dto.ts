@@ -96,6 +96,9 @@ export class CreateMemberDto {
     isBaptized: boolean;
 
     @IsOptional()
+    @ValidateIf(
+        (o) => o.isBaptizedInTheHolySpirit !== undefined && o.isBaptizedInTheHolySpirit !== null,
+    )
     @IsBoolean()
     isBaptizedInTheHolySpirit: boolean;
 
@@ -116,6 +119,9 @@ export class CreateMemberDto {
     photoUrl: string;
 
     @IsOptional()
+    @ValidateIf(
+        (o) => o.childrenCount !== undefined && o.childrenCount !== null && o.childrenCount !== '',
+    )
     @IsNumber()
     childrenCount: number;
 
@@ -144,6 +150,9 @@ export class CreateMemberDto {
     admissionDate: string;
 
     @IsOptional()
+    @ValidateIf(
+        (o) => o.admissionType !== undefined && o.admissionType !== null && o.admissionType !== '',
+    )
     @IsEnum(AdmissionType)
     admissionType: AdmissionType;
 }

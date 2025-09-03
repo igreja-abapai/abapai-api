@@ -21,6 +21,9 @@ export class Address extends IdTimestampBaseEntity {
     @Column()
     streetNumber: string;
 
+    @Column({ nullable: true })
+    complement: string;
+
     @Column()
     state: string;
 }
