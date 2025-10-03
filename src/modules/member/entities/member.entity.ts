@@ -105,8 +105,8 @@ export class Member extends IdTimestampBaseEntity {
     @Column({ type: 'text', nullable: true })
     observations: string;
 
-    @Column({ type: 'date', nullable: true })
-    admissionDate: Date;
+    @Column({ type: 'text', nullable: true })
+    admissionDate: string;
 
     @Column({ type: 'enum', enum: AdmissionType, nullable: true })
     admissionType: AdmissionType;

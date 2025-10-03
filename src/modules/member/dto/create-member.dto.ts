@@ -146,7 +146,7 @@ export class CreateMemberDto {
     observations: string;
 
     @IsOptional()
-    @IsDateString()
+    @IsString()
     admissionDate: string;
 
     @IsOptional()
