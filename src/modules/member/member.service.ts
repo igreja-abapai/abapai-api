@@ -35,6 +35,7 @@ export class MemberService {
     async findAll(): Promise<Member[]> {
         return await this.memberRepository.find({
             relations: ['address'],
+            order: { createdAt: 'DESC' },
         });
     }
 
