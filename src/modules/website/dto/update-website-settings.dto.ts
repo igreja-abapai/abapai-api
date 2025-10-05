@@ -3,10 +3,6 @@ import { IsOptional, IsString, IsBoolean } from 'class-validator';
 export class UpdateWebsiteSettingsDto {
     @IsOptional()
     @IsString()
-    churchName?: string;
-
-    @IsOptional()
-    @IsString()
     address?: string;
 
     @IsOptional()
@@ -31,15 +27,15 @@ export class UpdateWebsiteSettingsDto {
 
     @IsOptional()
     @IsString()
+    twitter?: string;
+
+    @IsOptional()
+    @IsString()
     about?: string;
 
     @IsOptional()
     @IsString()
     serviceTimes?: string;
-
-    @IsOptional()
-    @IsString()
-    welcomeMessage?: string;
 
     @IsOptional()
     @IsString()
@@ -54,8 +50,16 @@ export class UpdateWebsiteSettingsDto {
     aboutOurValues?: string;
 
     @IsOptional()
-    @IsBoolean()
-    isActive?: boolean;
+    @IsString()
+    weeklyMessageUrl?: string;
+
+    @IsOptional()
+    @IsString()
+    weeklyMessageTitle?: string;
+
+    @IsOptional()
+    @IsString()
+    weeklyMessageDate?: string;
 
     @IsOptional()
     @IsBoolean()

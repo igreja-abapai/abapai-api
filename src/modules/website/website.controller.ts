@@ -1,9 +1,10 @@
 import { Controller, Get, Put, Body } from '@nestjs/common';
 import { WebsiteService } from './website.service';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { UseGuards } from '@nestjs/common';
 
 @Controller('website')
-// @UseGuards(AuthGuard('jwt'))
 export class WebsiteController {
     constructor(private readonly websiteService: WebsiteService) {}
 
@@ -12,6 +13,7 @@ export class WebsiteController {
         return await this.websiteService.getSettings();
     }
 
+    @UseGuards(AuthGuard('jwt'))
     @Put('settings')
     async updateSettings(@Body() updateDto: UpdateWebsiteSettingsDto) {
         return await this.websiteService.updateSettings(updateDto);

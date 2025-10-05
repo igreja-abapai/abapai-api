@@ -12,9 +12,6 @@ export class WebsiteSettings {
     id: number;
 
     @Column({ type: 'text', nullable: true })
-    churchName: string;
-
-    @Column({ type: 'text', nullable: true })
     address: string;
 
     @Column({ type: 'text', nullable: true })
@@ -33,13 +30,13 @@ export class WebsiteSettings {
     youtube: string;
 
     @Column({ type: 'text', nullable: true })
+    twitter: string;
+
+    @Column({ type: 'text', nullable: true })
     about: string;
 
     @Column({ type: 'text', nullable: true })
     serviceTimes: string;
-
-    @Column({ type: 'text', nullable: true })
-    welcomeMessage: string;
 
     @Column({ type: 'text', nullable: true })
     aboutWhoWeAre: string;
@@ -50,8 +47,14 @@ export class WebsiteSettings {
     @Column({ type: 'text', nullable: true })
     aboutOurValues: string;
 
-    @Column({ default: true })
-    isActive: boolean;
+    @Column({ type: 'text', nullable: true })
+    weeklyMessageUrl: string;
+
+    @Column({ type: 'text', nullable: true })
+    weeklyMessageTitle: string;
+
+    @Column({ type: 'text', nullable: true })
+    weeklyMessageDate: string;
 
     @Column({ default: false })
     maintenanceMode: boolean;
