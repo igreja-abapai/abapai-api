@@ -14,6 +14,7 @@ import { AwsModule } from './modules/aws/aws.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { WebsiteModule } from './modules/website/website.module';
 import { ScheduleEventModule } from './modules/schedule-event/schedule-event.module';
+import { CarouselImageModule } from './modules/carousel-image/carousel-image.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -35,6 +36,7 @@ import { ScheduleModule } from '@nestjs/schedule';
         NotificationModule,
         WebsiteModule,
         ScheduleEventModule,
+        CarouselImageModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],

@@ -33,6 +33,9 @@ export class WebsiteSettings {
     twitter: string;
 
     @Column({ type: 'text', nullable: true })
+    whatsapp: string;
+
+    @Column({ type: 'text', nullable: true })
     about: string;
 
     @Column({ type: 'text', nullable: true })

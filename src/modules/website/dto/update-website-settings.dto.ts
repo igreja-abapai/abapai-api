@@ -31,6 +31,10 @@ export class UpdateWebsiteSettingsDto {
 
     @IsOptional()
     @IsString()
+    whatsapp?: string;
+
+    @IsOptional()
+    @IsString()
     about?: string;
 
     @IsOptional()
