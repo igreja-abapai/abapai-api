@@ -56,6 +56,22 @@ export class WebsiteSettings {
     @Column({ type: 'text', nullable: true })
     weeklyMessageDate: string;
 
+    @Column({ type: 'jsonb', nullable: true })
+    bankInfo: {
+        bank: string;
+        agency: string;
+        account: string;
+        cnpj: string;
+        name: string;
+    };
+
+    @Column({ type: 'jsonb', nullable: true })
+    pixInfo: {
+        type: string;
+        key: string;
+        name: string;
+    };
+
     @Column({ default: false })
     maintenanceMode: boolean;
 

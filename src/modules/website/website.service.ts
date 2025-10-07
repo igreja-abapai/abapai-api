@@ -38,6 +38,18 @@ export class WebsiteService {
                 weeklyMessageUrl: 'https://www.youtube.com/watch?v=wjleWU8J2GY',
                 weeklyMessageTitle: 'A visão de quem quer milagre - Pr. Raimundo Feliciano',
                 weeklyMessageDate: '21 JUL 2022',
+                bankInfo: {
+                    bank: '403 - Banco Cora SDC',
+                    agency: '0001',
+                    account: '4416982-0',
+                    cnpj: '52.782.534/0001-10',
+                    name: 'Ministério Cristão Aba Pai',
+                },
+                pixInfo: {
+                    type: 'CNPJ',
+                    key: '52.782.534/0001-10',
+                    name: 'MINISTÉRIO CRISTÃO ABA PAI',
+                },
                 maintenanceMode: false,
             });
             settings = await this.websiteSettingsRepository.save(settings);

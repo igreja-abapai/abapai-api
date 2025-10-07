@@ -62,6 +62,22 @@ export class UpdateWebsiteSettingsDto {
     weeklyMessageDate?: string;
 
     @IsOptional()
+    bankInfo?: {
+        bank?: string;
+        agency?: string;
+        account?: string;
+        cnpj?: string;
+        name?: string;
+    };
+
+    @IsOptional()
+    pixInfo?: {
+        type?: string;
+        key?: string;
+        name?: string;
+    };
+
+    @IsOptional()
     @IsBoolean()
     maintenanceMode?: boolean;
 }
