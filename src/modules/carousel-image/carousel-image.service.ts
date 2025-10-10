@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { CarouselImage } from './entities/carousel-image.entity';
 import { CreateCarouselImageDto } from './dto/create-carousel-image.dto';
 import { UpdateCarouselImageDto } from './dto/update-carousel-image.dto';
+import { AwsService } from '../aws/aws.service';
 
 @Injectable()
 export class CarouselImageService {
     constructor(
         @InjectRepository(CarouselImage)
         private readonly repo: Repository<CarouselImage>,
+        private readonly awsService: AwsService,
     ) {}
 
     findAll(): Promise<CarouselImage[]> {
@@ -41,6 +43,15 @@ export class CarouselImageService {
     }
 
     async remove(id: number): Promise<void> {
+        const existing = await this.findOne(id);
         await this.repo.delete({ id });
+        // Best-effort delete of S3 object referenced by this image
+        if (existing?.imageUrl) {
+            try {
+                await this.awsService.deleteObjectByUrl(existing.imageUrl);
+            } catch (e) {
+                console.error(e);
+            }
+        }
     }
 }
