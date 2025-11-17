@@ -36,7 +36,7 @@ export class AwsService {
         });
 
         const url = await getSignedUrl(this.s3, command, {
-            expiresIn: 60,
+            expiresIn: 3600,
         });
 
         return url;
