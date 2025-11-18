@@ -64,6 +64,14 @@ export class RequestLoggerMiddleware implements NestMiddleware {
     }
 
     private isAutomatedRequest(req: ExpressRequest): boolean {
+        // Block requests with NULL or missing origin header
+        // Legitimate browser requests will have an origin header
+        const origin = req.headers.origin;
+        if (!origin || origin.trim() === '') {
+            return true;
+        }
+
+        // Additional check: known automated user agents
         const userAgent = (req.headers['user-agent'] || '').toLowerCase();
 
         // Vercel screenshot service (generates Open Graph images)
@@ -73,6 +81,11 @@ export class RequestLoggerMiddleware implements NestMiddleware {
 
         // Deno runtime (Vercel Edge Functions, health checks, monitoring)
         if (userAgent.includes('deno/')) {
+            return true;
+        }
+
+        // Node.js requests (server-to-server, health checks)
+        if (userAgent === 'node' || userAgent.startsWith('node/')) {
             return true;
         }
 
