@@ -12,6 +12,7 @@ export class WebsiteService {
     ) {}
 
     async getSettings(): Promise<WebsiteSettings> {
+        console.log('request to getSettings was made');
         const settings = await this.websiteSettingsRepository.findOne({
             where: { id: 1 },
         });
