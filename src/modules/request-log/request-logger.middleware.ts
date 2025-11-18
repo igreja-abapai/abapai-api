@@ -11,6 +11,15 @@ export class RequestLoggerMiddleware implements NestMiddleware {
     constructor(private readonly requestLogService: RequestLogService) {}
 
     use(req: ExpressRequest, res: Response, next: NextFunction): void {
+        // Completely block automated/bot requests to prevent database queries
+        if (this.isAutomatedRequest(req)) {
+            res.status(403).json({
+                error: 'Forbidden',
+                message: 'Automated requests are not allowed',
+            });
+            return;
+        }
+
         const startedAt = Date.now();
         let logged = false;
 
@@ -52,6 +61,34 @@ export class RequestLoggerMiddleware implements NestMiddleware {
         });
 
         next();
+    }
+
+    private isAutomatedRequest(req: ExpressRequest): boolean {
+        const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+
+        // Vercel screenshot service (generates Open Graph images)
+        if (userAgent.includes('vercel-screenshot')) {
+            return true;
+        }
+
+        // Deno runtime (Vercel Edge Functions, health checks, monitoring)
+        if (userAgent.includes('deno/')) {
+            return true;
+        }
+
+        // Other common bots/crawlers
+        const botPatterns = [
+            'bot',
+            'crawler',
+            'spider',
+            'scraper',
+            'monitor',
+            'uptime',
+            'pingdom',
+            'healthcheck',
+        ];
+
+        return botPatterns.some((pattern) => userAgent.includes(pattern));
     }
 
     private extractClientIp(req: ExpressRequest): string | null {
