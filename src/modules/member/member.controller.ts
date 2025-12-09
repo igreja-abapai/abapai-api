@@ -8,11 +8,13 @@ import {
     Delete,
     Request,
     UseGuards,
+    Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MemberService } from './member.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 
 @Controller('member')
 @UseGuards(AuthGuard('jwt'))
@@ -26,8 +28,8 @@ export class MemberController {
     }
 
     @Get()
-    findAll() {
-        return this.memberService.findAll();
+    findAll(@Query() query: PaginationQueryDto) {
+        return this.memberService.findAll(query);
     }
 
     @Get(':id')

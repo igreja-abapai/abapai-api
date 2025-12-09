@@ -11,6 +11,18 @@ export class RequestLoggerMiddleware implements NestMiddleware {
     constructor(private readonly requestLogService: RequestLogService) {}
 
     use(req: ExpressRequest, res: Response, next: NextFunction): void {
+        // Allow image proxy requests (they don't have Origin header)
+        // Check both path and originalUrl to handle different Express routing scenarios
+        const isImageRequest =
+            req.path.startsWith('/aws/image/') ||
+            req.originalUrl?.startsWith('/aws/image/') ||
+            req.url?.startsWith('/aws/image/');
+
+        if (isImageRequest) {
+            next();
+            return;
+        }
+
         // Completely block automated/bot requests to prevent database queries
         if (this.isAutomatedRequest(req)) {
             res.status(403).json({

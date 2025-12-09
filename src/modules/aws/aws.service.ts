@@ -1,6 +1,5 @@
-// aws.service.ts
 import { Injectable } from '@nestjs/common';
-import { S3, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as crypto from 'crypto';
 import { promisify } from 'util';
@@ -51,25 +50,38 @@ export class AwsService {
         await this.s3.send(command);
     }
 
-    /**
-     * Deletes an object given its full URL by extracting the S3 key.
-     */
     async deleteObjectByUrl(fileUrl: string): Promise<void> {
         if (!fileUrl) return;
+        const key = this.extractKeyFromUrl(fileUrl);
+        if (key) {
+            await this.deleteObject(key);
+        }
+    }
+
+    async getObject(key: string): Promise<Buffer> {
+        const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: key,
+        });
+        const response = await this.s3.send(command);
+        const chunks: Uint8Array[] = [];
+        if (response.Body) {
+            for await (const chunk of response.Body as any) {
+                chunks.push(chunk);
+            }
+        }
+        return Buffer.concat(chunks);
+    }
+
+    extractKeyFromUrl(fileUrl: string): string | null {
+        if (!fileUrl) return null;
         try {
             const url = new URL(fileUrl);
-            // Key is the pathname without leading '/'
             const key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-            if (key) {
-                await this.deleteObject(key);
-            }
+            return key || null;
         } catch {
-            // If URL parsing fails, fallback to last path segment
             const parts = fileUrl.split('/');
-            const key = parts[parts.length - 1];
-            if (key) {
-                await this.deleteObject(key);
-            }
+            return parts[parts.length - 1] || null;
         }
     }
 }

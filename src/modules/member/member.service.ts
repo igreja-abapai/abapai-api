@@ -32,11 +32,114 @@ export class MemberService {
         return await this.memberRepository.save(member);
     }
 
-    async findAll(): Promise<Member[]> {
-        return await this.memberRepository.find({
-            relations: ['address'],
-            order: { createdAt: 'DESC' },
-        });
+    async findAll(query?: {
+        page?: number;
+        limit?: number;
+        sortBy?: string;
+        sortOrder?: 'ASC' | 'DESC';
+        search?: string;
+        isBaptized?: boolean;
+    }): Promise<{
+        data: Member[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    }> {
+        const page = query?.page || 1;
+        const limit = query?.limit || 10;
+        const skip = (page - 1) * limit;
+        const sortBy = query?.sortBy || 'name';
+        const sortOrder = query?.sortOrder || 'ASC';
+
+        // Build query builder
+        const queryBuilder = this.memberRepository
+            .createQueryBuilder('member')
+            .leftJoinAndSelect('member.address', 'address');
+
+        // Apply search filter
+        if (query?.search) {
+            queryBuilder.where(
+                '(member.name ILIKE :search OR member.email ILIKE :search OR member.phone ILIKE :search)',
+                { search: `%${query.search}%` },
+            );
+        }
+
+        // Apply baptism filter
+        if (query?.isBaptized !== undefined) {
+            if (query?.search) {
+                queryBuilder.andWhere('member.isBaptized = :isBaptized', {
+                    isBaptized: query.isBaptized,
+                });
+            } else {
+                queryBuilder.where('member.isBaptized = :isBaptized', {
+                    isBaptized: query.isBaptized,
+                });
+            }
+        }
+
+        // Apply sorting with accent-insensitive comparison
+        // Boolean and numeric columns don't need accent normalization
+        const booleanColumns = [
+            'isBaptized',
+            'isBaptizedInTheHolySpirit',
+            'wantsToBeAVolunteer',
+            'isActive',
+        ];
+        const numericColumns = ['id', 'childrenCount', 'addressId', 'createdBy', 'updatedBy'];
+        const dateColumns = ['birthdate', 'createdAt', 'updatedAt'];
+
+        const needsAccentNormalization =
+            !booleanColumns.includes(sortBy) &&
+            !numericColumns.includes(sortBy) &&
+            !dateColumns.includes(sortBy);
+
+        if (needsAccentNormalization) {
+            // Use PostgreSQL's TRANSLATE() to normalize accented characters for text columns
+            const accentFrom = 'áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ';
+            const accentTo = 'aaaaaeeeeiiiioooouuuucAAAAAEEEEIIIIOOOOUUUUC';
+
+            const sortAlias = 'normalized_sort';
+            if (sortBy === 'address') {
+                queryBuilder.addSelect(
+                    `LOWER(TRANSLATE(address.streetName, '${accentFrom}', '${accentTo}'))`,
+                    sortAlias,
+                );
+            } else {
+                // Sanitize column name to prevent SQL injection
+                const columnName = sortBy.replace(/[^a-zA-Z0-9_]/g, '');
+                queryBuilder.addSelect(
+                    `LOWER(TRANSLATE(member."${columnName}", '${accentFrom}', '${accentTo}'))`,
+                    sortAlias,
+                );
+            }
+
+            queryBuilder.orderBy(sortAlias, sortOrder);
+        } else {
+            // For boolean, numeric, and date columns, use direct ordering
+            if (sortBy === 'address') {
+                queryBuilder.orderBy('address.streetName', sortOrder);
+            } else {
+                queryBuilder.orderBy(`member.${sortBy}`, sortOrder);
+            }
+        }
+
+        const total = await queryBuilder.getCount();
+
+        queryBuilder.skip(skip).take(limit);
+
+        const { entities } = await queryBuilder.getRawAndEntities();
+        const data = entities;
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            data,
+            total,
+            page,
+            limit,
+            totalPages,
+        };
     }
 
     async findOne(id: number): Promise<Member> {
