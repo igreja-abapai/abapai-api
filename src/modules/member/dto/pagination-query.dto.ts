@@ -1,5 +1,5 @@
 import { IsOptional, IsInt, Min, Max, IsString, IsIn } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class PaginationQueryDto {
     @IsOptional()
@@ -31,4 +31,15 @@ export class PaginationQueryDto {
     @IsOptional()
     @Type(() => Boolean)
     isBaptized?: boolean;
+
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (value === undefined || value === null) return true;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+            return value.toLowerCase() === 'true';
+        }
+        return Boolean(value);
+    })
+    isPaginated?: boolean = true;
 }

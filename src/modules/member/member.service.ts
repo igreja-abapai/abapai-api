@@ -39,6 +39,7 @@ export class MemberService {
         sortOrder?: 'ASC' | 'DESC';
         search?: string;
         isBaptized?: boolean;
+        isPaginated?: boolean;
     }): Promise<{
         data: Member[];
         total: number;
@@ -46,9 +47,19 @@ export class MemberService {
         limit: number;
         totalPages: number;
     }> {
+        // Handle isPaginated - can be boolean, string 'true'/'false', or undefined
+        let isPaginated = true; // Default to true
+        if (query?.isPaginated !== undefined) {
+            if (typeof query.isPaginated === 'boolean') {
+                isPaginated = query.isPaginated;
+            } else if (typeof query.isPaginated === 'string') {
+                isPaginated = query.isPaginated === 'true';
+            }
+        }
+
         const page = query?.page || 1;
         const limit = query?.limit || 10;
-        const skip = (page - 1) * limit;
+        const skip = isPaginated ? (page - 1) * limit : 0;
         const sortBy = query?.sortBy || 'name';
         const sortOrder = query?.sortOrder || 'ASC';
 
@@ -124,20 +135,48 @@ export class MemberService {
             }
         }
 
+        // When using addSelect for sorting, we must use getRawAndEntities even when not paginated
+        // to get the computed sort field, but we'll ignore pagination limits
+
+        // Get total count
         const total = await queryBuilder.getCount();
 
-        queryBuilder.skip(skip).take(limit);
+        // Apply pagination only if isPaginated is true
+        if (isPaginated) {
+            queryBuilder.skip(skip).take(limit);
+        }
+        // When not paginated, don't call skip() or take() - will return all results
 
+        // Always use getRawAndEntities when we have computed sort fields (addSelect)
+        // or when paginated. When not paginated and no computed fields, getMany() works fine
+        const hasComputedSort = needsAccentNormalization;
+
+        // When not paginated, ensure we don't have any limits applied
+        if (!isPaginated) {
+            // Execute query without pagination
+            const allData = hasComputedSort
+                ? (await queryBuilder.getRawAndEntities()).entities
+                : await queryBuilder.getMany();
+            return {
+                data: allData,
+                total,
+                page: 1,
+                limit: total,
+                totalPages: 1,
+            };
+        }
+
+        // Paginated path
         const { entities } = await queryBuilder.getRawAndEntities();
         const data = entities;
 
-        const totalPages = Math.ceil(total / limit);
+        const totalPages = isPaginated ? Math.ceil(total / limit) : 1;
 
         return {
             data,
             total,
-            page,
-            limit,
+            page: isPaginated ? page : 1,
+            limit: isPaginated ? limit : total,
             totalPages,
         };
     }
