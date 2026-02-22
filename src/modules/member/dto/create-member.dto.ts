@@ -155,4 +155,7 @@ export class CreateMemberDto {
     )
     @IsEnum(AdmissionType)
     admissionType: AdmissionType;
+    @IsOptional()
+    @IsBoolean()
+    isActive: boolean;
 }

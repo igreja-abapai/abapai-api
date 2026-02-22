@@ -37,10 +37,13 @@ export default class PermissionSeeder implements Seeder {
                 description: 'Permissão para alterar cargos de usuário',
             },
 
-            // Permissões de website
             {
                 code: 'gerenciar_website',
                 description: 'Permissão para gerenciar configurações do website',
+            },
+            {
+                code: 'visualizar_analises',
+                description: 'Permissão para visualizar análises e estatísticas',
             },
         ];
 

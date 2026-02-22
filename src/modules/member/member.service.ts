@@ -39,6 +39,7 @@ export class MemberService {
         sortOrder?: 'ASC' | 'DESC';
         search?: string;
         isBaptized?: boolean;
+        isActive?: boolean;
         isPaginated?: boolean;
     }): Promise<{
         data: Member[];
@@ -85,6 +86,19 @@ export class MemberService {
             } else {
                 queryBuilder.where('member.isBaptized = :isBaptized', {
                     isBaptized: query.isBaptized,
+                });
+            }
+        }
+
+        // Apply status filter
+        if (query?.isActive !== undefined) {
+            if (query?.search || query?.isBaptized !== undefined) {
+                queryBuilder.andWhere('member.isActive = :isActive', {
+                    isActive: query.isActive,
+                });
+            } else {
+                queryBuilder.where('member.isActive = :isActive', {
+                    isActive: query.isActive,
                 });
             }
         }

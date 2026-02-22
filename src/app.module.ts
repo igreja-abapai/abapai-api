@@ -18,6 +18,7 @@ import { CarouselImageModule } from './modules/carousel-image/carousel-image.mod
 import { ScheduleModule } from '@nestjs/schedule';
 import { RequestLogModule } from './modules/request-log/request-log.module';
 import { RequestLoggerMiddleware } from './modules/request-log/request-logger.middleware';
+import { StatsModule } from './modules/stats/stats.module';
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import { RequestLoggerMiddleware } from './modules/request-log/request-logger.mi
         ScheduleEventModule,
         CarouselImageModule,
         RequestLogModule,
+        StatsModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],

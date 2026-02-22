@@ -24,7 +24,7 @@ export default class UserSeeder implements Seeder {
 
         // Create or update admin user
         let adminUser = await userRepository.findOne({
-            where: { email: 'raimundo.feliciano@hotmail.com' },
+            where: { email: 'igrejamcabapai@hotmail.com' },
         });
 
         if (!adminUser) {
@@ -33,7 +33,7 @@ export default class UserSeeder implements Seeder {
             adminUser = userRepository.create({
                 firstName: 'Raimundo',
                 lastName: 'Feliciano',
-                email: 'raimundo.feliciano@hotmail.com',
+                email: 'igrejamcabapai@hotmail.com',
                 password: hashedPassword,
                 roleId: adminRole.id,
             });

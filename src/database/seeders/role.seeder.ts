@@ -27,6 +27,7 @@ export default class RoleSeeder implements Seeder {
                     'alterar_senha_usuario',
                     'alterar_cargo_usuario',
                     'gerenciar_website',
+                    'visualizar_analises',
                 ],
             },
             {
@@ -43,6 +44,7 @@ export default class RoleSeeder implements Seeder {
                     'editar_membros',
                     'excluir_membros',
                     'visualizar_pedidos_oracao',
+                    'visualizar_analises',
                 ],
             },
         ];
