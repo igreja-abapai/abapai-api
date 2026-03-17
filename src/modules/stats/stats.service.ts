@@ -11,10 +11,8 @@ export class StatsService {
     ) {}
 
     async getMemberStats() {
-        // Fetch all active members
-        const members = await this.memberRepository.find({
-            where: { isActive: true },
-        });
+        // Fetch all members (active + ausentes)
+        const members = await this.memberRepository.find();
 
         const now = new Date();
         const currentYear = now.getFullYear();
