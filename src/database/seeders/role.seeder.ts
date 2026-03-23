@@ -28,12 +28,14 @@ export default class RoleSeeder implements Seeder {
                     'alterar_cargo_usuario',
                     'gerenciar_website',
                     'visualizar_analises',
+                    'visualizar_financas',
+                    'gerenciar_financas',
                 ],
             },
             {
                 name: 'tesoureiro',
                 description: 'Tesoureiro com acesso ao módulo financeiro',
-                permissions: ['visualizar_membros'],
+                permissions: ['visualizar_financas', 'gerenciar_financas'],
             },
             {
                 name: 'secretario',

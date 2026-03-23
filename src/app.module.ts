@@ -19,6 +19,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RequestLogModule } from './modules/request-log/request-log.module';
 import { RequestLoggerMiddleware } from './modules/request-log/request-logger.middleware';
 import { StatsModule } from './modules/stats/stats.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
     imports: [
@@ -42,6 +43,7 @@ import { StatsModule } from './modules/stats/stats.module';
         CarouselImageModule,
         RequestLogModule,
         StatsModule,
+        FinanceModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],

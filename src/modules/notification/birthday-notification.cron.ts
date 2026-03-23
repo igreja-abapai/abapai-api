@@ -14,19 +14,29 @@ export class BirthdayNotificationCron {
         private readonly memberService: MemberService,
     ) {}
 
-    @Cron(CronExpression.EVERY_DAY_AT_8AM)
+    @Cron(CronExpression.EVERY_DAY_AT_1PM)
     async handleBirthdayNotifications() {
         const today = new Date();
         const month = today.getMonth() + 1;
         const day = today.getDate();
 
+        this.logger.log(
+            `Birthday cron ran. serverNow=${today.toISOString()} month=${month} day=${day}`,
+        );
+
         const members = await this.memberService.findMembersWithBirthdayToday(month, day);
 
-        if (!members.length) return;
+        if (!members.length) {
+            this.logger.log('No birthdays found for today.');
+            return;
+        }
 
         const users = await this.userService.findUsersWithRoles(['admin', 'secretario']);
 
-        if (!users.length) return;
+        if (!users.length) {
+            this.logger.warn('No recipients found (admin/secretario). Skipping notification.');
+            return;
+        }
 
         const recipientIds = users.map((u) => u.id);
         const memberNamesHtml = members.map((m) => `<b>${m.name}</b>`).join(', ');
@@ -40,6 +50,8 @@ export class BirthdayNotificationCron {
             recipientIds,
         });
 
-        this.logger.log(`Birthday notification sent to ${recipientIds.length} users.`);
+        this.logger.log(
+            `Birthday notification sent. recipients=${recipientIds.length} birthdays=${members.length}`,
+        );
     }
 }

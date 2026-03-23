@@ -45,6 +45,14 @@ export default class PermissionSeeder implements Seeder {
                 code: 'visualizar_analises',
                 description: 'Permissão para visualizar análises e estatísticas',
             },
+            {
+                code: 'visualizar_financas',
+                description: 'Permissão para visualizar o módulo financeiro',
+            },
+            {
+                code: 'gerenciar_financas',
+                description: 'Permissão para criar e gerenciar transações financeiras',
+            },
         ];
 
         for (const permissionData of permissions) {
