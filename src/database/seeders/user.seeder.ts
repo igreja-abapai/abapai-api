@@ -24,16 +24,16 @@ export default class UserSeeder implements Seeder {
 
         // Create or update admin user
         let adminUser = await userRepository.findOne({
-            where: { email: 'igrejamcabapai@hotmail.com' },
+            where: { email: 'admin@example.com' },
         });
 
         if (!adminUser) {
             const hashedPassword = encryptionService.hashSync(this.DEFAULT_PASSWORD);
 
             adminUser = userRepository.create({
-                firstName: 'Raimundo',
-                lastName: 'Feliciano',
-                email: 'igrejamcabapai@hotmail.com',
+                firstName: 'Admin',
+                lastName: 'Example',
+                email: 'admin@example.com',
                 password: hashedPassword,
                 roleId: adminRole.id,
             });
