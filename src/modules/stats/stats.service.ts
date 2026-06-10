@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Member } from '../member/entities/member.entity';
 
 @Injectable()
@@ -12,7 +12,9 @@ export class StatsService {
 
     async getMemberStats() {
         // Fetch all members (active + ausentes)
-        const members = await this.memberRepository.find();
+        const members = await this.memberRepository.find({
+            where: { deletedAt: IsNull() },
+        });
 
         const now = new Date();
         const currentYear = now.getFullYear();

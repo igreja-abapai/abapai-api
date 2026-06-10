@@ -158,4 +158,8 @@ export class CreateMemberDto {
     @IsOptional()
     @IsBoolean()
     isActive: boolean;
+
+    @IsOptional()
+    @IsString()
+    absenceReason: string;
 }

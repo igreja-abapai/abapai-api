@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { Member } from './entities/member.entity';
@@ -40,6 +40,7 @@ export class MemberService {
         search?: string;
         isBaptized?: boolean;
         isActive?: boolean;
+        deletedOnly?: boolean;
         isPaginated?: boolean;
     }): Promise<{
         data: Member[];
@@ -69,9 +70,15 @@ export class MemberService {
             .createQueryBuilder('member')
             .leftJoinAndSelect('member.address', 'address');
 
+        if (query?.deletedOnly) {
+            queryBuilder.where('member.deletedAt IS NOT NULL');
+        } else {
+            queryBuilder.where('member.deletedAt IS NULL');
+        }
+
         // Apply search filter
         if (query?.search) {
-            queryBuilder.where(
+            queryBuilder.andWhere(
                 '(member.name ILIKE :search OR member.email ILIKE :search OR member.phone ILIKE :search)',
                 { search: `%${query.search}%` },
             );
@@ -79,28 +86,16 @@ export class MemberService {
 
         // Apply baptism filter
         if (query?.isBaptized !== undefined) {
-            if (query?.search) {
-                queryBuilder.andWhere('member.isBaptized = :isBaptized', {
-                    isBaptized: query.isBaptized,
-                });
-            } else {
-                queryBuilder.where('member.isBaptized = :isBaptized', {
-                    isBaptized: query.isBaptized,
-                });
-            }
+            queryBuilder.andWhere('member.isBaptized = :isBaptized', {
+                isBaptized: query.isBaptized,
+            });
         }
 
         // Apply status filter
         if (query?.isActive !== undefined) {
-            if (query?.search || query?.isBaptized !== undefined) {
-                queryBuilder.andWhere('member.isActive = :isActive', {
-                    isActive: query.isActive,
-                });
-            } else {
-                queryBuilder.where('member.isActive = :isActive', {
-                    isActive: query.isActive,
-                });
-            }
+            queryBuilder.andWhere('member.isActive = :isActive', {
+                isActive: query.isActive,
+            });
         }
 
         // Apply sorting with accent-insensitive comparison
@@ -112,7 +107,7 @@ export class MemberService {
             'isActive',
         ];
         const numericColumns = ['id', 'childrenCount', 'addressId', 'createdBy', 'updatedBy'];
-        const dateColumns = ['birthdate', 'createdAt', 'updatedAt'];
+        const dateColumns = ['birthdate', 'createdAt', 'updatedAt', 'deletedAt'];
 
         const needsAccentNormalization =
             !booleanColumns.includes(sortBy) &&
@@ -197,7 +192,7 @@ export class MemberService {
 
     async findOne(id: number): Promise<Member> {
         return await this.memberRepository.findOne({
-            where: { id },
+            where: { id, deletedAt: IsNull() },
             relations: ['address'],
         });
     }
@@ -216,6 +211,15 @@ export class MemberService {
             processedData.admissionType = undefined;
         }
 
+        if (processedData.isActive === false) {
+            const reason = processedData.absenceReason?.trim();
+            processedData.absenceReason = reason || null;
+        }
+
+        if (processedData.isActive === true) {
+            processedData.absenceReason = null;
+        }
+
         const updateData: any = {
             ...processedData,
             updatedBy: userId,
@@ -228,8 +232,20 @@ export class MemberService {
         return await this.findOne(id);
     }
 
-    async remove(id: number): Promise<void> {
-        await this.memberRepository.delete(id);
+    async remove(id: number, userId: number): Promise<void> {
+        await this.memberRepository.update(id, {
+            deletedAt: new Date(),
+            updatedBy: userId,
+        });
+    }
+
+    async restore(id: number, userId: number): Promise<Member> {
+        await this.memberRepository.update(id, {
+            deletedAt: null,
+            isActive: true,
+            updatedBy: userId,
+        });
+        return await this.findOne(id);
     }
 
     async findMembersWithBirthdayToday(month: number, day: number): Promise<Member[]> {
@@ -237,6 +253,7 @@ export class MemberService {
             .createQueryBuilder('member')
             .where('EXTRACT(MONTH FROM member.birthdate) = :month', { month })
             .andWhere('EXTRACT(DAY FROM member.birthdate) = :day', { day })
+            .andWhere('member.deletedAt IS NULL')
             .getMany();
     }
 }

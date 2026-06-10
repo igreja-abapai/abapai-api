@@ -113,4 +113,10 @@ export class Member extends IdTimestampBaseEntity {
 
     @Column({ default: true })
     isActive: boolean;
+
+    @Column({ type: 'text', nullable: true })
+    absenceReason: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    deletedAt: Date;
 }

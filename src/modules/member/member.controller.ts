@@ -37,6 +37,12 @@ export class MemberController {
         return this.memberService.findOne(+id);
     }
 
+    @Patch(':id/restore')
+    restore(@Param('id') id: string, @Request() req) {
+        const userId = req.user.id;
+        return this.memberService.restore(+id, userId);
+    }
+
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateMemberDto: UpdateMemberDto, @Request() req) {
         const userId = req.user.id;
@@ -44,7 +50,8 @@ export class MemberController {
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.memberService.remove(+id);
+    remove(@Param('id') id: string, @Request() req) {
+        const userId = req.user.id;
+        return this.memberService.remove(+id, userId);
     }
 }
