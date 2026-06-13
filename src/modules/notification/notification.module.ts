@@ -6,11 +6,13 @@ import { NotificationController } from './notification.controller';
 import { UserModule } from '../user/user.module';
 import { MemberModule } from '../member/member.module';
 import { BirthdayNotificationCron } from './birthday-notification.cron';
+import { BirthdayNotificationService } from './birthday-notification.service';
+import { InternalCronController } from './internal-cron.controller';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Notification]), UserModule, MemberModule],
-    providers: [NotificationService, BirthdayNotificationCron],
-    controllers: [NotificationController],
+    providers: [NotificationService, BirthdayNotificationService, BirthdayNotificationCron],
+    controllers: [NotificationController, InternalCronController],
     exports: [NotificationService],
 })
 export class NotificationModule {}

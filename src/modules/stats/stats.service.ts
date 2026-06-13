@@ -27,6 +27,7 @@ export class StatsService {
                 baptizedPercentage: '0',
                 averageAge: 0,
                 newConvertsPercentage: '0',
+                newConvertsCount: 0,
                 admissionTypes: {},
                 genderCounts: {},
                 ageCounts: {
@@ -125,6 +126,7 @@ export class StatsService {
             baptizedPercentage: ((baptizedCount / totalMembers) * 100).toFixed(1),
             averageAge: ageCount > 0 ? Math.round(totalAge / ageCount) : 0,
             newConvertsPercentage: ((newConverts / totalMembers) * 100).toFixed(1),
+            newConvertsCount: newConverts,
             admissionTypes,
             genderCounts,
             ageCounts,
