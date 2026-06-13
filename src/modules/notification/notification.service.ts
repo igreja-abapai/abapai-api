@@ -39,6 +39,29 @@ export class NotificationService {
         }
     }
 
+    async markAllAsRead(userId: number): Promise<void> {
+        const notifications = await this.findAllForUser(userId);
+        const user = await this.userService.findOne(userId);
+
+        if (!user) {
+            return;
+        }
+
+        const unreadNotifications = notifications.filter(
+            (notification) => !notification.readBy.some((u) => u.id === userId),
+        );
+
+        if (!unreadNotifications.length) {
+            return;
+        }
+
+        unreadNotifications.forEach((notification) => {
+            notification.readBy.push(user);
+        });
+
+        await this.notificationRepository.save(unreadNotifications);
+    }
+
     async sendNotification({
         title,
         message,
