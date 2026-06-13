@@ -23,8 +23,13 @@ export class RequestLoggerMiddleware implements NestMiddleware {
             return;
         }
 
+        const isCronRequest =
+            req.path.startsWith('/internal/cron/') ||
+            req.originalUrl?.startsWith('/internal/cron/') ||
+            req.url?.startsWith('/internal/cron/');
+
         // Completely block automated/bot requests to prevent database queries
-        if (this.isAutomatedRequest(req)) {
+        if (!isCronRequest && this.isAutomatedRequest(req)) {
             res.status(403).json({
                 error: 'Forbidden',
                 message: 'Automated requests are not allowed',
