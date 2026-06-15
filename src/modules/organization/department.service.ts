@@ -40,7 +40,7 @@ export class DepartmentService {
 
     async findAllDepartments(): Promise<Department[]> {
         return await this.departmentRepository.find({
-            relations: ['parent', 'children'],
+            relations: ['parent', 'children', 'memberDepartments'],
             order: { name: 'ASC' },
         });
     }

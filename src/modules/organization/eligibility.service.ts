@@ -16,8 +16,6 @@ export class EligibilityService {
         private readonly departmentRoleEligibilityRepository: Repository<DepartmentRoleEligibility>,
         @InjectRepository(MemberServiceCapability)
         private readonly memberServiceCapabilityRepository: Repository<MemberServiceCapability>,
-        @InjectRepository(Member)
-        private readonly memberRepository: Repository<Member>,
     ) {}
 
     async syncMemberCapabilitiesFromDepartments(memberId: number): Promise<void> {
@@ -50,7 +48,11 @@ export class EligibilityService {
                   })
                 : [];
 
-        const eligibleRoleIds = new Set(filteredEligibilities.map((item) => item.serviceRoleId));
+        const defaultRoleIds = new Set(
+            filteredEligibilities
+                .filter((item) => item.isDefault)
+                .map((item) => item.serviceRoleId),
+        );
 
         const existingCapabilities = await this.memberServiceCapabilityRepository.find({
             where: { memberId },
@@ -61,7 +63,7 @@ export class EligibilityService {
                 continue;
             }
 
-            const shouldBeActive = eligibleRoleIds.has(capability.serviceRoleId);
+            const shouldBeActive = defaultRoleIds.has(capability.serviceRoleId);
 
             if (capability.isActive !== shouldBeActive) {
                 capability.isActive = shouldBeActive;
@@ -69,11 +71,11 @@ export class EligibilityService {
             }
 
             if (shouldBeActive) {
-                eligibleRoleIds.delete(capability.serviceRoleId);
+                defaultRoleIds.delete(capability.serviceRoleId);
             }
         }
 
-        for (const serviceRoleId of eligibleRoleIds) {
+        for (const serviceRoleId of defaultRoleIds) {
             const existingManualCapability = existingCapabilities.find(
                 (capability) => capability.serviceRoleId === serviceRoleId,
             );
@@ -93,6 +95,8 @@ export class EligibilityService {
     }
 
     async getEligibleMembers(serviceRoleId: number): Promise<Member[]> {
+        const memberMap = new Map<number, Member>();
+
         const capabilities = await this.memberServiceCapabilityRepository.find({
             where: {
                 serviceRoleId,
@@ -101,8 +105,40 @@ export class EligibilityService {
             relations: ['member'],
         });
 
-        return capabilities
-            .map((capability) => capability.member)
-            .filter((member) => member && member.isActive && !member.deletedAt);
+        for (const capability of capabilities) {
+            const member = capability.member;
+            if (member && member.isActive && !member.deletedAt) {
+                memberMap.set(member.id, member);
+            }
+        }
+
+        const eligibilities = await this.departmentRoleEligibilityRepository.find({
+            where: {
+                serviceRoleId,
+                department: { isActive: true },
+                serviceRole: { isActive: true },
+            },
+        });
+
+        if (eligibilities.length > 0) {
+            const departmentIds = eligibilities.map((eligibility) => eligibility.departmentId);
+            const memberDepartments = await this.memberDepartmentRepository.find({
+                where: {
+                    departmentId: In(departmentIds),
+                    isActive: true,
+                    endedAt: IsNull(),
+                },
+                relations: ['member'],
+            });
+
+            for (const memberDepartment of memberDepartments) {
+                const member = memberDepartment.member;
+                if (member && member.isActive && !member.deletedAt) {
+                    memberMap.set(member.id, member);
+                }
+            }
+        }
+
+        return Array.from(memberMap.values()).sort((a, b) => a.name.localeCompare(b.name));
     }
 }
