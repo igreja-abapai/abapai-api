@@ -20,6 +20,7 @@ import { RequestLogModule } from './modules/request-log/request-log.module';
 import { RequestLoggerMiddleware } from './modules/request-log/request-logger.middleware';
 import { StatsModule } from './modules/stats/stats.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { OrganizationModule } from './modules/organization/organization.module';
 
 @Module({
     imports: [
@@ -44,6 +45,7 @@ import { FinanceModule } from './modules/finance/finance.module';
         RequestLogModule,
         StatsModule,
         FinanceModule,
+        OrganizationModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],

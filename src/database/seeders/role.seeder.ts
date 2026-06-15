@@ -30,6 +30,11 @@ export default class RoleSeeder implements Seeder {
                     'visualizar_analises',
                     'visualizar_financas',
                     'gerenciar_financas',
+                    'visualizar_organizacao',
+                    'gerenciar_departamentos',
+                    'gerenciar_funcoes_servico',
+                    'gerenciar_escalas',
+                    'publicar_escalas',
                 ],
             },
             {
@@ -47,6 +52,11 @@ export default class RoleSeeder implements Seeder {
                     'excluir_membros',
                     'visualizar_pedidos_oracao',
                     'visualizar_analises',
+                    'visualizar_organizacao',
+                    'gerenciar_departamentos',
+                    'gerenciar_funcoes_servico',
+                    'gerenciar_escalas',
+                    'publicar_escalas',
                 ],
             },
         ];

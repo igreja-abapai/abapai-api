@@ -79,7 +79,7 @@ export class Member extends IdTimestampBaseEntity {
     currentPosition: string;
 
     @Column({ nullable: true })
-    wantsToBeAVolunteer: boolean;
+    wantsToBeAVolunteer: boolean | null;
 
     @Column({ nullable: true })
     areaOfInterest: string;

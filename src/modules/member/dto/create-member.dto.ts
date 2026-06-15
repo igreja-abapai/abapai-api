@@ -107,6 +107,7 @@ export class CreateMemberDto {
     currentPosition: string;
 
     @IsOptional()
+    @ValidateIf((o) => o.wantsToBeAVolunteer !== undefined && o.wantsToBeAVolunteer !== null)
     @IsBoolean()
     wantsToBeAVolunteer: boolean;
 

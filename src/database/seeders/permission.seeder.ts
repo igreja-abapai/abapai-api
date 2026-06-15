@@ -53,6 +53,26 @@ export default class PermissionSeeder implements Seeder {
                 code: 'gerenciar_financas',
                 description: 'Permissão para criar e gerenciar transações financeiras',
             },
+            {
+                code: 'visualizar_organizacao',
+                description: 'Permissão para visualizar módulos de organização e escalas',
+            },
+            {
+                code: 'gerenciar_departamentos',
+                description: 'Permissão para gerenciar departamentos e vínculos de membros',
+            },
+            {
+                code: 'gerenciar_funcoes_servico',
+                description: 'Permissão para gerenciar funções de serviço e elegibilidades',
+            },
+            {
+                code: 'gerenciar_escalas',
+                description: 'Permissão para criar e editar escalas de culto',
+            },
+            {
+                code: 'publicar_escalas',
+                description: 'Permissão para publicar escalas de culto',
+            },
         ];
 
         for (const permissionData of permissions) {

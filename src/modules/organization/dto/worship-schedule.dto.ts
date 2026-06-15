@@ -1,0 +1,190 @@
+import { Type } from 'class-transformer';
+import { PartialType } from '@nestjs/swagger';
+import {
+    IsBoolean,
+    IsDateString,
+    IsEnum,
+    IsInt,
+    IsOptional,
+    IsString,
+    Matches,
+    Max,
+    MaxLength,
+    Min,
+} from 'class-validator';
+import { Weekday } from '../enums/weekday.enum';
+
+export class CreateWorshipServiceTypeDto {
+    @IsString()
+    @MaxLength(255)
+    name: string;
+
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @IsOptional()
+    @IsEnum(Weekday)
+    defaultWeekday?: Weekday;
+
+    @IsOptional()
+    @Matches(/^\d{2}:\d{2}$/)
+    defaultTime?: string;
+
+    @IsOptional()
+    @IsBoolean()
+    isActive?: boolean;
+}
+
+export class UpdateWorshipServiceTypeDto extends PartialType(CreateWorshipServiceTypeDto) {}
+
+export class CreateWorshipServiceTypeRoleDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    worshipServiceTypeId: number;
+
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    serviceRoleId: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    quantity?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    isRequired?: boolean;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(0)
+    sortOrder?: number;
+}
+
+export class UpdateWorshipServiceTypeRoleDto extends PartialType(CreateWorshipServiceTypeRoleDto) {}
+
+export class CreateWorshipServiceDto {
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    worshipServiceTypeId?: number;
+
+    @IsDateString()
+    scheduledAt: string;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(255)
+    name?: string;
+
+    @IsOptional()
+    @IsString()
+    notes?: string;
+}
+
+export class UpdateWorshipServiceDto extends PartialType(CreateWorshipServiceDto) {}
+
+export class CreateWorshipServiceFromTemplateDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    worshipServiceTypeId: number;
+
+    @IsDateString()
+    scheduledAt: string;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(255)
+    name?: string;
+
+    @IsOptional()
+    @IsString()
+    notes?: string;
+
+    @IsOptional()
+    @IsBoolean()
+    asDraft?: boolean;
+}
+
+export class CreateWorshipServicesFromTemplateByWeekdayDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    worshipServiceTypeId: number;
+
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    @Max(52)
+    count: number;
+
+    @IsOptional()
+    @IsEnum(Weekday)
+    weekday?: Weekday;
+
+    @IsOptional()
+    @IsDateString()
+    startFrom?: string;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(255)
+    name?: string;
+
+    @IsOptional()
+    @IsString()
+    notes?: string;
+
+    @IsOptional()
+    @IsBoolean()
+    asDraft?: boolean;
+}
+
+export class GenerateWorshipServicesMonthDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    month: number;
+
+    @Type(() => Number)
+    @IsInt()
+    @Min(1900)
+    year: number;
+}
+
+export class AssignServiceAssignmentDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    assignmentId: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    memberId?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    servingGroupId?: number;
+
+    @IsOptional()
+    @IsString()
+    notes?: string;
+}
+
+export class CopyWorshipServiceAssignmentsDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    sourceWorshipServiceId: number;
+}
