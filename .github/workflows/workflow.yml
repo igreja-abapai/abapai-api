@@ -20,9 +20,10 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: Install, build and run migrations
+    - name: Install, build, run migrations and seed roles/permissions
       env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       run: |
         npm install
         npm run migration:run
+        npm run seed:roles-permissions

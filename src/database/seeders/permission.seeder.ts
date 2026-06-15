@@ -66,6 +66,10 @@ export default class PermissionSeeder implements Seeder {
                 description: 'Permissão para gerenciar funções de serviço e elegibilidades',
             },
             {
+                code: 'gerenciar_cargos_igreja',
+                description: 'Permissão para gerenciar cargos oficiais da igreja',
+            },
+            {
                 code: 'gerenciar_escalas',
                 description: 'Permissão para criar e editar escalas de culto',
             },

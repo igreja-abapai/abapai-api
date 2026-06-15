@@ -68,7 +68,9 @@ export class MemberService {
         // Build query builder
         const queryBuilder = this.memberRepository
             .createQueryBuilder('member')
-            .leftJoinAndSelect('member.address', 'address');
+            .leftJoinAndSelect('member.address', 'address')
+            .leftJoinAndSelect('member.primaryPosition', 'primaryPosition')
+            .leftJoinAndSelect('member.secondaryPosition', 'secondaryPosition');
 
         if (query?.deletedOnly) {
             queryBuilder.where('member.deletedAt IS NOT NULL');
@@ -193,7 +195,7 @@ export class MemberService {
     async findOne(id: number): Promise<Member> {
         return await this.memberRepository.findOne({
             where: { id, deletedAt: IsNull() },
-            relations: ['address'],
+            relations: ['address', 'primaryPosition', 'secondaryPosition'],
         });
     }
 

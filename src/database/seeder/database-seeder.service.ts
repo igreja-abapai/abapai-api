@@ -8,18 +8,25 @@ import UserSeeder from '../seeders/user.seeder';
 export class DatabaseSeederService {
     constructor(private readonly dataSource: DataSource) {}
 
-    async seedDatabase() {
+    async seedRolesAndPermissions(): Promise<void> {
+        console.log('🌱 Seeding permissions and roles...');
+
+        const permissionSeeder = new PermissionSeeder();
+        await permissionSeeder.run(this.dataSource);
+        console.log('✅ Permissions seeded');
+
+        const roleSeeder = new RoleSeeder();
+        await roleSeeder.run(this.dataSource);
+        console.log('✅ Roles seeded');
+
+        console.log('🎉 Permissions and roles seeding completed successfully!');
+    }
+
+    async seedDatabase(): Promise<void> {
         try {
             console.log('🌱 Starting database seeding...');
 
-            // Run seeders in order (permissions -> roles -> users)
-            const permissionSeeder = new PermissionSeeder();
-            await permissionSeeder.run(this.dataSource);
-            console.log('✅ Permissions seeded');
-
-            const roleSeeder = new RoleSeeder();
-            await roleSeeder.run(this.dataSource);
-            console.log('✅ Roles seeded');
+            await this.seedRolesAndPermissions();
 
             const userSeeder = new UserSeeder();
             await userSeeder.run(this.dataSource);
@@ -28,6 +35,7 @@ export class DatabaseSeederService {
             console.log('🎉 Database seeding completed successfully!');
         } catch (error) {
             console.error('❌ Database seeding failed:', error);
+            throw error;
         }
     }
 }

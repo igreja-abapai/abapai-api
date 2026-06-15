@@ -28,6 +28,7 @@
         "typeorm:test": "npm run build && cross-env NODE_ENV=test npx typeorm -d dist/database/data-source.js",
         "migration:test:run": "npm run typeorm:test -- migration:run",
         "seed": "npm run build && node dist/database/seed.js",
+        "seed:roles-permissions": "npm run build && node dist/database/seed-roles-permissions.js",
         "prepare": "husky"
     },
     "dependencies": {

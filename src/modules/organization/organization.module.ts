@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Member } from '../member/entities/member.entity';
+import { ChurchPositionController } from './church-position.controller';
+import { ChurchPositionService } from './church-position.service';
 import { DepartmentController } from './department.controller';
 import { DepartmentService } from './department.service';
 import { EligibilityService } from './eligibility.service';
+import { ChurchPosition } from './entities/church-position.entity';
+import { DepartmentPositionEligibility } from './entities/department-position-eligibility.entity';
 import { DepartmentRoleEligibility } from './entities/department-role-eligibility.entity';
 import { Department } from './entities/department.entity';
 import { MemberDepartment } from './entities/member-department.entity';
@@ -27,6 +31,8 @@ import { WorshipScheduleService } from './worship-schedule.service';
             Member,
             Department,
             MemberDepartment,
+            ChurchPosition,
+            DepartmentPositionEligibility,
             ServiceRole,
             DepartmentRoleEligibility,
             MemberServiceCapability,
@@ -38,10 +44,16 @@ import { WorshipScheduleService } from './worship-schedule.service';
             ServiceAssignment,
         ]),
     ],
-    controllers: [DepartmentController, ServiceRoleController, WorshipSchedulesController],
+    controllers: [
+        DepartmentController,
+        ChurchPositionController,
+        ServiceRoleController,
+        WorshipSchedulesController,
+    ],
     providers: [
         EligibilityService,
         DepartmentService,
+        ChurchPositionService,
         ServiceRoleService,
         ServingGroupService,
         WorshipScheduleService,
@@ -49,6 +61,7 @@ import { WorshipScheduleService } from './worship-schedule.service';
     exports: [
         EligibilityService,
         DepartmentService,
+        ChurchPositionService,
         ServiceRoleService,
         ServingGroupService,
         WorshipScheduleService,

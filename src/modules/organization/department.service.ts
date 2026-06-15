@@ -53,6 +53,8 @@ export class DepartmentService {
                 'children',
                 'roleEligibilities',
                 'roleEligibilities.serviceRole',
+                'positionEligibilities',
+                'positionEligibilities.churchPosition',
                 'memberDepartments',
                 'memberDepartments.member',
             ],

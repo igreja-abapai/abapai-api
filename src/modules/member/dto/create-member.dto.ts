@@ -3,16 +3,38 @@ import {
     IsDateString,
     IsEmail,
     IsEnum,
+    IsInt,
     IsNotEmpty,
     IsNumber,
     IsOptional,
     IsString,
+    Min,
+    Validate,
     ValidateIf,
+    ValidationArguments,
+    ValidatorConstraint,
+    ValidatorConstraintInterface,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { Gender } from '../entities/gender.enum';
 import { MaritalStatus } from '../entities/marital-status.enum';
 import { EducationLevel } from '../entities/education-level.enum';
 import { AdmissionType } from '../entities/admission-type.enum';
+
+@ValidatorConstraint({ name: 'DistinctMemberPositionIds', async: false })
+class DistinctMemberPositionIdsConstraint implements ValidatorConstraintInterface {
+    validate(_value: unknown, args: ValidationArguments): boolean {
+        const obj = args.object as { primaryPositionId?: number; secondaryPositionId?: number };
+        if (!obj.primaryPositionId || !obj.secondaryPositionId) {
+            return true;
+        }
+        return obj.primaryPositionId !== obj.secondaryPositionId;
+    }
+
+    defaultMessage(): string {
+        return 'Cargo principal e cargo secundário devem ser diferentes';
+    }
+}
 
 export class CreateMemberDto {
     @IsNotEmpty()
@@ -105,6 +127,33 @@ export class CreateMemberDto {
     @IsOptional()
     @IsString()
     currentPosition: string;
+
+    @IsOptional()
+    @ValidateIf(
+        (o) =>
+            o.primaryPositionId !== null &&
+            o.primaryPositionId !== undefined &&
+            o.primaryPositionId !== '',
+    )
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    primaryPositionId?: number | null;
+
+    @IsOptional()
+    @ValidateIf(
+        (o) =>
+            o.secondaryPositionId !== null &&
+            o.secondaryPositionId !== undefined &&
+            o.secondaryPositionId !== '',
+    )
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    secondaryPositionId?: number | null;
+
+    @Validate(DistinctMemberPositionIdsConstraint)
+    private readonly _distinctPositions?: never;
 
     @IsOptional()
     @ValidateIf((o) => o.wantsToBeAVolunteer !== undefined && o.wantsToBeAVolunteer !== null)

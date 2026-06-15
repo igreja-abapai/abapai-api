@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
 import { IdTimestampBaseEntity } from '../../../shared/common/id-timestamp.base-entity';
 import { Address } from '../../address/entities/address.entity';
+import { ChurchPosition } from '../../organization/entities/church-position.entity';
 import { EducationLevel } from './education-level.enum';
 import { Gender } from './gender.enum';
 import { MaritalStatus } from './marital-status.enum';
@@ -77,6 +78,20 @@ export class Member extends IdTimestampBaseEntity {
 
     @Column({ nullable: true })
     currentPosition: string;
+
+    @Column({ name: 'primary_position_id', nullable: true })
+    primaryPositionId: number;
+
+    @ManyToOne(() => ChurchPosition, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'primary_position_id' })
+    primaryPosition: ChurchPosition;
+
+    @Column({ name: 'secondary_position_id', nullable: true })
+    secondaryPositionId: number;
+
+    @ManyToOne(() => ChurchPosition, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'secondary_position_id' })
+    secondaryPosition: ChurchPosition;
 
     @Column({ nullable: true })
     wantsToBeAVolunteer: boolean | null;

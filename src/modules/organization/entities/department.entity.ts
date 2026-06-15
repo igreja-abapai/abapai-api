@@ -3,6 +3,7 @@ import { IdTimestampBaseEntity } from '../../../shared/common/id-timestamp.base-
 import { DepartmentType } from '../enums/department-type.enum';
 import { MemberDepartment } from './member-department.entity';
 import { DepartmentRoleEligibility } from './department-role-eligibility.entity';
+import { DepartmentPositionEligibility } from './department-position-eligibility.entity';
 
 @Entity('departments')
 export class Department extends IdTimestampBaseEntity {
@@ -33,4 +34,7 @@ export class Department extends IdTimestampBaseEntity {
 
     @OneToMany(() => DepartmentRoleEligibility, (eligibility) => eligibility.department)
     roleEligibilities: DepartmentRoleEligibility[];
+
+    @OneToMany(() => DepartmentPositionEligibility, (eligibility) => eligibility.department)
+    positionEligibilities: DepartmentPositionEligibility[];
 }
