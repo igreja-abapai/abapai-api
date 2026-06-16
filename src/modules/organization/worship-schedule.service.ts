@@ -25,6 +25,7 @@ import { Weekday } from './enums/weekday.enum';
 import { WorshipServiceStatus } from './enums/worship-service-status.enum';
 import { EligibilityService } from './eligibility.service';
 import { Member } from '../member/entities/member.entity';
+import { combineDateWithTimeInChurchTimezone } from '../../shared/utils/church-datetime';
 
 @Injectable()
 export class WorshipScheduleService {
@@ -564,16 +565,7 @@ export class WorshipScheduleService {
     }
 
     private combineDateWithTime(date: Date, time: string): Date {
-        const [hours, minutes] = time.split(':').map((part) => Number(part));
-        return new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            Number.isNaN(hours) ? 19 : hours,
-            Number.isNaN(minutes) ? 0 : minutes,
-            0,
-            0,
-        );
+        return combineDateWithTimeInChurchTimezone(date, time);
     }
 
     private getNextWeekdayOccurrences(startFrom: Date, jsWeekday: number, count: number): Date[] {
