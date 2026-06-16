@@ -1,16 +1,19 @@
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/swagger';
 import {
+    ArrayUnique,
     IsBoolean,
+    IsInt,
+    IsArray,
     IsDateString,
     IsEnum,
-    IsInt,
     IsOptional,
     IsString,
     Matches,
     Max,
     MaxLength,
     Min,
+    ValidateIf,
 } from 'class-validator';
 import { Weekday } from '../enums/weekday.enum';
 
@@ -157,6 +160,41 @@ export class GenerateWorshipServicesMonthDto {
     @IsInt()
     @Min(1900)
     year: number;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayUnique()
+    @Type(() => Number)
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    autoAssignRoleIds?: number[];
+
+    @IsOptional()
+    @IsBoolean()
+    proceedWithWarnings?: boolean;
+}
+
+export class GenerateWorshipAssignmentsMonthDto {
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    month: number;
+
+    @Type(() => Number)
+    @IsInt()
+    @Min(1900)
+    year: number;
+
+    @IsArray()
+    @ArrayUnique()
+    @Type(() => Number)
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    autoAssignRoleIds: number[];
+
+    @IsOptional()
+    @IsBoolean()
+    proceedWithWarnings?: boolean;
 }
 
 export class AssignServiceAssignmentDto {
@@ -178,8 +216,9 @@ export class AssignServiceAssignmentDto {
     servingGroupId?: number;
 
     @IsOptional()
+    @ValidateIf((_, value) => value !== null)
     @IsString()
-    notes?: string;
+    notes?: string | null;
 }
 
 export class CopyWorshipServiceAssignmentsDto {

@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../../shared/guards/jwtStrategy';
 import { EmailModule } from '../../shared/services/email/email.module';
@@ -13,7 +13,7 @@ import { AuthService } from './auth.service';
     imports: [
         EncryptionModule,
         TokenModule,
-        forwardRef(() => UserModule),
+        UserModule,
         VerificationCodeModule,
         EmailModule,
         JwtModule.registerAsync({

@@ -27,6 +27,7 @@ import {
     CreateWorshipServicesFromTemplateByWeekdayDto,
     CreateWorshipServiceTypeDto,
     CreateWorshipServiceTypeRoleDto,
+    GenerateWorshipAssignmentsMonthDto,
     GenerateWorshipServicesMonthDto,
     UpdateWorshipServiceDto,
     UpdateWorshipServiceTypeDto,
@@ -222,6 +223,15 @@ export class WorshipSchedulesController {
         return await this.worshipScheduleService.generateInstancesForMonth(dto, req.user.id);
     }
 
+    @Post('services/generate-assignments-month')
+    @Permissions('gerenciar_escalas')
+    async generateAssignmentsForMonth(
+        @Body() dto: GenerateWorshipAssignmentsMonthDto,
+        @Request() req: any,
+    ) {
+        return await this.worshipScheduleService.generateAssignmentsForMonth(dto, req.user.id);
+    }
+
     @Get('services')
     @Permissions('visualizar_organizacao')
     async findAllWorshipServices(@Query('month') month?: string, @Query('year') year?: string) {
@@ -229,6 +239,34 @@ export class WorshipSchedulesController {
             return await this.worshipScheduleService.findWorshipServicesByMonth(+month, +year);
         }
         return await this.worshipScheduleService.findAllWorshipServices();
+    }
+
+    @Delete('services/month/assignments')
+    @Permissions('gerenciar_escalas')
+    async clearWorshipServiceAssignmentsForMonth(
+        @Query('month') month: string,
+        @Query('year') year: string,
+        @Request() req: any,
+    ) {
+        return await this.worshipScheduleService.clearWorshipServiceAssignmentsForMonth(
+            +month,
+            +year,
+            req.user.id,
+        );
+    }
+
+    @Delete('services/month')
+    @Permissions('gerenciar_escalas')
+    async removeWorshipServicesForMonth(
+        @Query('month') month: string,
+        @Query('year') year: string,
+        @Request() req: any,
+    ) {
+        return await this.worshipScheduleService.removeWorshipServicesForMonth(
+            +month,
+            +year,
+            req.user.id,
+        );
     }
 
     @Get('services/:id')
