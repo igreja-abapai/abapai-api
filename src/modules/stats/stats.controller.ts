@@ -14,4 +14,10 @@ export class StatsController {
     async getMemberStats() {
         return await this.statsService.getMemberStats();
     }
+
+    @Get('organization')
+    @Permissions('visualizar_analises')
+    async getOrganizationStats() {
+        return await this.statsService.getOrganizationStats();
+    }
 }
