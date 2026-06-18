@@ -172,6 +172,14 @@ export class GenerateWorshipServicesMonthDto {
     @IsOptional()
     @IsBoolean()
     proceedWithWarnings?: boolean;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayUnique()
+    @Type(() => Number)
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    excludedMemberIds?: number[];
 }
 
 export class GenerateWorshipAssignmentsMonthDto {
@@ -195,6 +203,14 @@ export class GenerateWorshipAssignmentsMonthDto {
     @IsOptional()
     @IsBoolean()
     proceedWithWarnings?: boolean;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayUnique()
+    @Type(() => Number)
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    excludedMemberIds?: number[];
 }
 
 export class AssignServiceAssignmentDto {

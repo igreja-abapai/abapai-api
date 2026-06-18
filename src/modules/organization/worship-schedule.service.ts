@@ -357,6 +357,7 @@ export class WorshipScheduleService {
     }> {
         const createdServices: WorshipService[] = [];
         const selectedRoleIds = Array.from(new Set(dto.autoAssignRoleIds || []));
+        const excludedMemberIds = Array.from(new Set(dto.excludedMemberIds || []));
 
         if (selectedRoleIds.length > 0) {
             await this.validateSelectedRoleIds(selectedRoleIds);
@@ -374,6 +375,7 @@ export class WorshipScheduleService {
                 selectedRoleIds,
                 dto.month,
                 dto.year,
+                excludedMemberIds,
             );
 
             if (preview.unassignedSlots > 0 && !dto.proceedWithWarnings) {
@@ -412,6 +414,7 @@ export class WorshipScheduleService {
             dto.year,
             {
                 excludeWorshipServiceIds: createdServices.map((service) => service.id),
+                excludedMemberIds,
                 persist: true,
                 userId,
             },
@@ -438,6 +441,7 @@ export class WorshipScheduleService {
         autoAssign?: AutoAssignResult;
     }> {
         const selectedRoleIds = await this.validateSelectedRoleIds(dto.autoAssignRoleIds);
+        const excludedMemberIds = Array.from(new Set(dto.excludedMemberIds || []));
         const services = await this.findWorshipServicesByMonth(dto.month, dto.year);
 
         if (services.length === 0) {
@@ -459,7 +463,7 @@ export class WorshipScheduleService {
             selectedRoleIds,
             dto.month,
             dto.year,
-            { onlyUnassigned: true },
+            { onlyUnassigned: true, excludedMemberIds },
         );
 
         if (preview.unassignedSlots > 0 && !dto.proceedWithWarnings) {
@@ -476,7 +480,7 @@ export class WorshipScheduleService {
             selectedRoleIds,
             dto.month,
             dto.year,
-            { onlyUnassigned: true, persist: true, userId },
+            { onlyUnassigned: true, excludedMemberIds, persist: true, userId },
         );
 
         return {
@@ -519,12 +523,26 @@ export class WorshipScheduleService {
         const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
         const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
+        const todayInChurch = DateTime.now().setZone(CHURCH_TIMEZONE).startOf('day');
+        let rangeStart = monthStart;
+
+        if (
+            year < todayInChurch.year ||
+            (year === todayInChurch.year && month < todayInChurch.month)
+        ) {
+            return planned;
+        }
+
+        if (year === todayInChurch.year && month === todayInChurch.month) {
+            rangeStart = new Date(todayInChurch.year, todayInChurch.month - 1, todayInChurch.day);
+        }
+
         for (const type of activeTypes) {
             if (!type.defaultWeekday) continue;
             const jsWeekday = this.mapWeekdayToJsWeekday(type.defaultWeekday);
             if (jsWeekday === null) continue;
 
-            const dateCursor = new Date(monthStart);
+            const dateCursor = new Date(rangeStart);
             while (dateCursor <= monthEnd) {
                 if (dateCursor.getDay() === jsWeekday) {
                     const scheduledAt = this.combineDateWithTime(
@@ -601,12 +619,16 @@ export class WorshipScheduleService {
 
     private async buildRoleCandidatePools(
         selectedRoleIds: number[],
+        excludedMemberIds: number[] = [],
     ): Promise<Map<number, RoleCandidatePool>> {
+        const excludedMemberSet = new Set(excludedMemberIds);
         const pools = new Map<number, RoleCandidatePool>();
 
         for (const roleId of selectedRoleIds) {
             const members = await this.eligibilityService.getEligibleMembers(roleId);
-            const eligibleMemberIds = members.map((member) => member.id);
+            const eligibleMemberIds = members
+                .map((member) => member.id)
+                .filter((memberId) => !excludedMemberSet.has(memberId));
 
             const servingGroups = await this.servingGroupRepository.find({
                 where: { serviceRoleId: roleId, isActive: true },
@@ -618,6 +640,7 @@ export class WorshipScheduleService {
             for (const group of servingGroups) {
                 const memberIds = (group.members || []).map((member) => member.memberId);
                 if (memberIds.length < 2) continue;
+                if (memberIds.some((memberId) => excludedMemberSet.has(memberId))) continue;
 
                 const activeMembers = await this.memberRepository.find({
                     where: { id: In(memberIds), isActive: true },
@@ -994,11 +1017,15 @@ export class WorshipScheduleService {
         options?: {
             onlyUnassigned?: boolean;
             excludeWorshipServiceIds?: number[];
+            excludedMemberIds?: number[];
             persist?: boolean;
             userId?: number;
         },
     ): Promise<AutoAssignResult> {
-        const pools = await this.buildRoleCandidatePools(selectedRoleIds);
+        const pools = await this.buildRoleCandidatePools(
+            selectedRoleIds,
+            options?.excludedMemberIds || [],
+        );
         const batches = this.buildAssignmentBatchesFromServices(services, selectedRoleIds, {
             onlyUnassigned: options?.onlyUnassigned,
         });
@@ -1058,8 +1085,9 @@ export class WorshipScheduleService {
         selectedRoleIds: number[],
         month: number,
         year: number,
+        excludedMemberIds: number[] = [],
     ): Promise<AutoAssignResult> {
-        const pools = await this.buildRoleCandidatePools(selectedRoleIds);
+        const pools = await this.buildRoleCandidatePools(selectedRoleIds, excludedMemberIds);
         const batches = this.buildPreviewBatches(plannedServices, selectedRoleIds);
         const locks = await this.getWeeklyLocksFromExistingAssignments(
             month,
