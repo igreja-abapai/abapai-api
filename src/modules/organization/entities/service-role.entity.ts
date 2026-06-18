@@ -25,6 +25,9 @@ export class ServiceRole extends IdTimestampBaseEntity {
     @Column({ name: 'is_active', default: true })
     isActive: boolean;
 
+    @Column({ name: 'allows_guest_assignment', default: false })
+    allowsGuestAssignment: boolean;
+
     @OneToMany(() => DepartmentRoleEligibility, (eligibility) => eligibility.serviceRole)
     departmentEligibilities: DepartmentRoleEligibility[];
 

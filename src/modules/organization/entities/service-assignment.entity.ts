@@ -53,4 +53,7 @@ export class ServiceAssignment extends IdTimestampBaseEntity {
 
     @Column({ type: 'text', nullable: true })
     notes: string;
+
+    @Column({ name: 'guest_name', type: 'varchar', length: 255, nullable: true })
+    guestName: string;
 }

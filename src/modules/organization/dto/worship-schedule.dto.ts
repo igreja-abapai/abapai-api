@@ -234,6 +234,12 @@ export class AssignServiceAssignmentDto {
     @IsOptional()
     @ValidateIf((_, value) => value !== null)
     @IsString()
+    @MaxLength(255)
+    guestName?: string | null;
+
+    @IsOptional()
+    @ValidateIf((_, value) => value !== null)
+    @IsString()
     notes?: string | null;
 }
 

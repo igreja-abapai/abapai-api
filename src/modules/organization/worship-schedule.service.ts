@@ -31,6 +31,7 @@ import {
     CHURCH_TIMEZONE,
     combineDateWithTimeInChurchTimezone,
 } from '../../shared/utils/church-datetime';
+import { isServiceAssignmentFilled, normalizeGuestName } from './utils/service-assignment.utils';
 
 interface PlannedMonthService {
     type: WorshipServiceType;
@@ -358,9 +359,11 @@ export class WorshipScheduleService {
         const createdServices: WorshipService[] = [];
         const selectedRoleIds = Array.from(new Set(dto.autoAssignRoleIds || []));
         const excludedMemberIds = Array.from(new Set(dto.excludedMemberIds || []));
+        let autoAssignableRoleIds: number[] = [];
 
         if (selectedRoleIds.length > 0) {
             await this.validateSelectedRoleIds(selectedRoleIds);
+            autoAssignableRoleIds = await this.getAutoAssignableRoleIds(selectedRoleIds);
         }
 
         const activeTypes = await this.worshipServiceTypeRepository.find({
@@ -369,10 +372,10 @@ export class WorshipScheduleService {
         });
         const plannedServices = await this.planMonthServices(activeTypes, dto.month, dto.year);
 
-        if (selectedRoleIds.length > 0) {
+        if (autoAssignableRoleIds.length > 0) {
             const preview = await this.previewMonthAutoAssignment(
                 plannedServices,
-                selectedRoleIds,
+                autoAssignableRoleIds,
                 dto.month,
                 dto.year,
                 excludedMemberIds,
@@ -400,7 +403,7 @@ export class WorshipScheduleService {
             createdServices.push(created);
         }
 
-        if (selectedRoleIds.length === 0 || createdServices.length === 0) {
+        if (autoAssignableRoleIds.length === 0 || createdServices.length === 0) {
             return {
                 createdServices,
                 requiresConfirmation: false,
@@ -409,7 +412,7 @@ export class WorshipScheduleService {
 
         const autoAssign = await this.runAutoAssignmentOnServices(
             createdServices,
-            selectedRoleIds,
+            autoAssignableRoleIds,
             dto.month,
             dto.year,
             {
@@ -441,6 +444,7 @@ export class WorshipScheduleService {
         autoAssign?: AutoAssignResult;
     }> {
         const selectedRoleIds = await this.validateSelectedRoleIds(dto.autoAssignRoleIds);
+        const autoAssignableRoleIds = await this.getAutoAssignableRoleIds(selectedRoleIds);
         const excludedMemberIds = Array.from(new Set(dto.excludedMemberIds || []));
         const services = await this.findWorshipServicesByMonth(dto.month, dto.year);
 
@@ -448,7 +452,13 @@ export class WorshipScheduleService {
             throw new BadRequestException('Nenhum culto encontrado para este mês');
         }
 
-        const batches = this.buildAssignmentBatchesFromServices(services, selectedRoleIds, {
+        if (autoAssignableRoleIds.length === 0) {
+            throw new BadRequestException(
+                'As funções selecionadas não permitem geração automática de escalas',
+            );
+        }
+
+        const batches = this.buildAssignmentBatchesFromServices(services, autoAssignableRoleIds, {
             onlyUnassigned: true,
         });
 
@@ -460,7 +470,7 @@ export class WorshipScheduleService {
 
         const preview = await this.runAutoAssignmentOnServices(
             services,
-            selectedRoleIds,
+            autoAssignableRoleIds,
             dto.month,
             dto.year,
             { onlyUnassigned: true, excludedMemberIds },
@@ -477,7 +487,7 @@ export class WorshipScheduleService {
 
         const autoAssign = await this.runAutoAssignmentOnServices(
             services,
-            selectedRoleIds,
+            autoAssignableRoleIds,
             dto.month,
             dto.year,
             { onlyUnassigned: true, excludedMemberIds, persist: true, userId },
@@ -512,6 +522,18 @@ export class WorshipScheduleService {
         }
 
         return selectedRoleIds;
+    }
+
+    private async getAutoAssignableRoleIds(roleIds: number[]): Promise<number[]> {
+        if (roleIds.length === 0) {
+            return [];
+        }
+
+        const roles = await this.serviceRoleRepository.find({
+            where: { id: In(roleIds) },
+        });
+
+        return roles.map((role) => role.id);
     }
 
     private async planMonthServices(
@@ -981,7 +1003,7 @@ export class WorshipScheduleService {
 
             for (const assignment of service.assignments || []) {
                 if (!selectedRoleSet.has(assignment.serviceRoleId)) continue;
-                if (options?.onlyUnassigned && (assignment.memberId || assignment.servingGroupId)) {
+                if (options?.onlyUnassigned && isServiceAssignmentFilled(assignment)) {
                     continue;
                 }
 
@@ -1270,8 +1292,7 @@ export class WorshipScheduleService {
 
         const assignmentsToClear = assignments.filter(
             (assignment) =>
-                assignment.memberId ||
-                assignment.servingGroupId ||
+                isServiceAssignmentFilled(assignment) ||
                 assignment.notes ||
                 assignment.status !== AssignmentStatus.EMPTY,
         );
@@ -1283,6 +1304,7 @@ export class WorshipScheduleService {
         for (const assignment of assignmentsToClear) {
             assignment.memberId = null;
             assignment.servingGroupId = null;
+            assignment.guestName = null;
             assignment.notes = null;
             assignment.status = AssignmentStatus.EMPTY;
             assignment.assignedBy = null;
@@ -1302,9 +1324,14 @@ export class WorshipScheduleService {
     ): Promise<ServiceAssignment> {
         await this.findWorshipServiceById(worshipServiceId);
 
-        if ((!dto.memberId && !dto.servingGroupId) || (dto.memberId && dto.servingGroupId)) {
+        const memberId = dto.memberId || null;
+        const servingGroupId = dto.servingGroupId || null;
+        const guestName = normalizeGuestName(dto.guestName);
+        const filledModes = [memberId, servingGroupId, guestName].filter(Boolean).length;
+
+        if (filledModes > 1) {
             throw new BadRequestException(
-                'Informe apenas memberId ou servingGroupId para atribuição',
+                'Informe apenas um tipo de atribuição: membro, grupo ou convidado',
             );
         }
 
@@ -1316,23 +1343,29 @@ export class WorshipScheduleService {
             throw new NotFoundException('Vaga de escala não encontrada');
         }
 
-        if (dto.memberId) {
-            await this.ensureMemberExists(dto.memberId);
+        if (guestName && !assignment.serviceRole?.allowsGuestAssignment) {
+            throw new BadRequestException(
+                'Esta função não permite atribuição de convidado externo',
+            );
         }
 
-        if (dto.servingGroupId) {
-            await this.ensureServingGroupExists(dto.servingGroupId);
+        if (memberId) {
+            await this.ensureMemberExists(memberId);
         }
 
-        assignment.memberId = dto.memberId || null;
-        assignment.servingGroupId = dto.servingGroupId || null;
+        if (servingGroupId) {
+            await this.ensureServingGroupExists(servingGroupId);
+        }
+
+        assignment.memberId = memberId;
+        assignment.servingGroupId = servingGroupId;
+        assignment.guestName = guestName;
         if (dto.notes !== undefined) {
             assignment.notes = dto.notes?.trim() || null;
         }
-        assignment.status =
-            dto.memberId || dto.servingGroupId
-                ? AssignmentStatus.CONFIRMED
-                : AssignmentStatus.EMPTY;
+        assignment.status = isServiceAssignmentFilled(assignment)
+            ? AssignmentStatus.CONFIRMED
+            : AssignmentStatus.EMPTY;
         assignment.assignedBy = userId;
         assignment.assignedAt = new Date();
         assignment.updatedBy = userId;
@@ -1400,13 +1433,13 @@ export class WorshipScheduleService {
 
             target.memberId = source.memberId || null;
             target.servingGroupId = source.servingGroupId || null;
+            target.guestName = source.guestName || null;
             target.notes = source.notes;
-            target.status =
-                source.memberId || source.servingGroupId
-                    ? AssignmentStatus.CONFIRMED
-                    : AssignmentStatus.EMPTY;
-            target.assignedBy = source.memberId || source.servingGroupId ? userId : null;
-            target.assignedAt = source.memberId || source.servingGroupId ? new Date() : null;
+            target.status = isServiceAssignmentFilled(source)
+                ? AssignmentStatus.CONFIRMED
+                : AssignmentStatus.EMPTY;
+            target.assignedBy = isServiceAssignmentFilled(source) ? userId : null;
+            target.assignedAt = isServiceAssignmentFilled(source) ? new Date() : null;
             target.updatedBy = userId;
         }
 

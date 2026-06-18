@@ -29,6 +29,10 @@ export class CreateServiceRoleDto {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    allowsGuestAssignment?: boolean;
 }
 
 export class UpdateServiceRoleDto extends PartialType(CreateServiceRoleDto) {}
