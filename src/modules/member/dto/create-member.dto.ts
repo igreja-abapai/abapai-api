@@ -125,10 +125,6 @@ export class CreateMemberDto {
     isBaptizedInTheHolySpirit: boolean;
 
     @IsOptional()
-    @IsString()
-    currentPosition: string;
-
-    @IsOptional()
     @ValidateIf(
         (o) =>
             o.primaryPositionId !== null &&

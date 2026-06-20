@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { Brackets, IsNull, Repository } from 'typeorm';
+import { buildWordStartPattern } from '../../shared/utils/word-search.utils';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { Member } from './entities/member.entity';
@@ -78,11 +79,27 @@ export class MemberService {
             queryBuilder.where('member.deletedAt IS NULL');
         }
 
-        // Apply search filter
+        // Apply search filter — match only when a word starts with the search term
         if (query?.search) {
+            const term = query.search.trim();
+            const namePattern = buildWordStartPattern(term, '[[:space:]]');
+            const emailPattern = buildWordStartPattern(term, '[[:space:]@._-]');
+            const phoneDigits = term.replace(/\D/g, '');
+
             queryBuilder.andWhere(
-                '(member.name ILIKE :search OR member.email ILIKE :search OR member.phone ILIKE :search)',
-                { search: `%${query.search}%` },
+                new Brackets((qb) => {
+                    qb.where('member.name ~* :namePattern', { namePattern }).orWhere(
+                        'member.email ~* :emailPattern',
+                        { emailPattern },
+                    );
+
+                    if (phoneDigits) {
+                        qb.orWhere(
+                            "regexp_replace(member.phone, '\\D', '', 'g') LIKE :phonePrefix",
+                            { phonePrefix: `${phoneDigits}%` },
+                        );
+                    }
+                }),
             );
         }
 

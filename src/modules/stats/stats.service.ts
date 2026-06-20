@@ -481,8 +481,7 @@ export class StatsService {
     }
 
     private memberHasCargo(member: Member): boolean {
-        if (member.primaryPositionId) return true;
-        return Boolean(member.currentPosition?.trim());
+        return Boolean(member.primaryPositionId || member.secondaryPositionId);
     }
 
     private getDepartureYear(member: Member): number | null {

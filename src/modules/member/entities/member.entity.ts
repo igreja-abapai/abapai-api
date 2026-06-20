@@ -76,9 +76,6 @@ export class Member extends IdTimestampBaseEntity {
     @Column({ nullable: true })
     isBaptizedInTheHolySpirit: boolean;
 
-    @Column({ nullable: true })
-    currentPosition: string;
-
     @Column({ name: 'primary_position_id', nullable: true })
     primaryPositionId: number;
 
