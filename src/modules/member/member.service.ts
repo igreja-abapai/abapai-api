@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, IsNull, Repository } from 'typeorm';
 import { buildWordStartPattern } from '../../shared/utils/word-search.utils';
+import {
+    SEARCH_ACCENT_FROM,
+    SEARCH_ACCENT_TO,
+    translateSqlExpression,
+} from '../../shared/utils/search-text.utils';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { Member } from './entities/member.entity';
@@ -88,10 +93,11 @@ export class MemberService {
 
             queryBuilder.andWhere(
                 new Brackets((qb) => {
-                    qb.where('member.name ~* :namePattern', { namePattern }).orWhere(
-                        'member.email ~* :emailPattern',
-                        { emailPattern },
-                    );
+                    qb.where(`${translateSqlExpression('member.name')} ~* :namePattern`, {
+                        namePattern,
+                    }).orWhere(`${translateSqlExpression('member.email')} ~* :emailPattern`, {
+                        emailPattern,
+                    });
 
                     if (phoneDigits) {
                         qb.orWhere(
@@ -134,21 +140,17 @@ export class MemberService {
             !dateColumns.includes(sortBy);
 
         if (needsAccentNormalization) {
-            // Use PostgreSQL's TRANSLATE() to normalize accented characters for text columns
-            const accentFrom = 'áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ';
-            const accentTo = 'aaaaaeeeeiiiioooouuuucAAAAAEEEEIIIIOOOOUUUUC';
-
             const sortAlias = 'normalized_sort';
             if (sortBy === 'address') {
                 queryBuilder.addSelect(
-                    `LOWER(TRANSLATE(address.streetName, '${accentFrom}', '${accentTo}'))`,
+                    `LOWER(TRANSLATE(address.streetName, '${SEARCH_ACCENT_FROM}', '${SEARCH_ACCENT_TO}'))`,
                     sortAlias,
                 );
             } else {
                 // Sanitize column name to prevent SQL injection
                 const columnName = sortBy.replace(/[^a-zA-Z0-9_]/g, '');
                 queryBuilder.addSelect(
-                    `LOWER(TRANSLATE(member."${columnName}", '${accentFrom}', '${accentTo}'))`,
+                    `LOWER(TRANSLATE(member."${columnName}", '${SEARCH_ACCENT_FROM}', '${SEARCH_ACCENT_TO}'))`,
                     sortAlias,
                 );
             }

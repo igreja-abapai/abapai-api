@@ -14,6 +14,7 @@ import { AssetLocation } from './entities/asset-location.entity';
 import { Asset } from './entities/asset.entity';
 import { AssetOrigin } from './enums/asset-origin.enum';
 import { AssetStatus } from './enums/asset-status.enum';
+import { normalizeSearchText, translateSqlExpression } from '../../shared/utils/search-text.utils';
 
 @Injectable()
 export class AssetsService {
@@ -93,13 +94,14 @@ export class AssetsService {
         }
 
         if (query.search?.trim()) {
-            const term = `%${query.search.trim()}%`;
+            const term = `%${normalizeSearchText(query.search)}%`;
             qb.andWhere(
                 new Brackets((sub) => {
-                    sub.where('asset.code ILIKE :term', { term }).orWhere(
-                        'asset.description ILIKE :term',
-                        { term },
-                    );
+                    sub.where(`${translateSqlExpression('asset.code')} LIKE :term`, {
+                        term,
+                    }).orWhere(`${translateSqlExpression('asset.description')} LIKE :term`, {
+                        term,
+                    });
                 }),
             );
         }
