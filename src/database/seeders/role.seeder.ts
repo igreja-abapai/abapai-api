@@ -36,12 +36,19 @@ export default class RoleSeeder implements Seeder {
                     'gerenciar_cargos_igreja',
                     'gerenciar_escalas',
                     'publicar_escalas',
+                    'visualizar_patrimonio',
+                    'gerenciar_patrimonio',
                 ],
             },
             {
                 name: 'tesoureiro',
                 description: 'Tesoureiro com acesso ao módulo financeiro',
-                permissions: ['visualizar_financas', 'gerenciar_financas'],
+                permissions: [
+                    'visualizar_financas',
+                    'gerenciar_financas',
+                    'visualizar_patrimonio',
+                    'gerenciar_patrimonio',
+                ],
             },
             {
                 name: 'secretario',
@@ -59,6 +66,8 @@ export default class RoleSeeder implements Seeder {
                     'gerenciar_cargos_igreja',
                     'gerenciar_escalas',
                     'publicar_escalas',
+                    'visualizar_patrimonio',
+                    'gerenciar_patrimonio',
                 ],
             },
         ];

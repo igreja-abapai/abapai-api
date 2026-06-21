@@ -77,6 +77,14 @@ export default class PermissionSeeder implements Seeder {
                 code: 'publicar_escalas',
                 description: 'Permissão para publicar escalas de culto',
             },
+            {
+                code: 'visualizar_patrimonio',
+                description: 'Permissão para visualizar patrimônio e inventário',
+            },
+            {
+                code: 'gerenciar_patrimonio',
+                description: 'Permissão para gerenciar bens patrimoniais',
+            },
         ];
 
         for (const permissionData of permissions) {

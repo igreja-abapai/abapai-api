@@ -14,19 +14,32 @@ export class AwsController {
 
     @Get('image/:key(*)')
     async getImage(@Param('key') key: string, @Res() res: Response): Promise<void> {
+        await this.streamObject(key, res);
+    }
+
+    @Get('file/:key(*)')
+    async getFile(@Param('key') key: string, @Res() res: Response): Promise<void> {
+        await this.streamObject(key, res, true);
+    }
+
+    private async streamObject(key: string, res: Response, asDownload = false): Promise<void> {
         try {
-            const imageBuffer = await this.awsService.getObject(key);
+            const fileBuffer = await this.awsService.getObject(key);
             const contentType = this.getContentType(key);
+            const fileName = key.split('/').pop() ?? 'download';
 
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.setHeader('Access-Control-Allow-Methods', 'GET');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
             res.setHeader('Content-Type', contentType);
             res.setHeader('Cache-Control', 'public, max-age=31536000');
-            res.send(imageBuffer);
+            if (asDownload) {
+                res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+            }
+            res.send(fileBuffer);
         } catch (error) {
-            console.error('Error fetching image from S3:', error);
-            res.status(404).send('Image not found');
+            console.error('Error fetching file from S3:', error);
+            res.status(404).send('File not found');
         }
     }
 
@@ -36,7 +49,12 @@ export class AwsController {
             png: 'image/png',
             gif: 'image/gif',
             webp: 'image/webp',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            pdf: 'application/pdf',
+            xml: 'application/xml',
+            txt: 'text/plain',
         };
-        return contentTypes[extension || ''] || 'image/jpeg';
+        return contentTypes[extension || ''] || 'application/octet-stream';
     }
 }
