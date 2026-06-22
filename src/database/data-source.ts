@@ -1,3 +1,4 @@
+import '../setup-timezone';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
 

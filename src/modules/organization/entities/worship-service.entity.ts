@@ -14,6 +14,7 @@ export class WorshipService extends IdTimestampBaseEntity {
     worshipServiceType: WorshipServiceType;
 
     @Column({ name: 'scheduled_at', type: 'timestamp' })
+    /** Stored as UTC wall-clock in a timestamp-without-tz column; API runs with TZ=UTC. */
     scheduledAt: Date;
 
     @Column({ type: 'varchar', length: 255, nullable: true })

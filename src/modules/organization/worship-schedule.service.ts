@@ -30,6 +30,9 @@ import { Member } from '../member/entities/member.entity';
 import {
     CHURCH_TIMEZONE,
     combineDateWithTimeInChurchTimezone,
+    getNextWeekdayOccurrencesInChurchTimezone,
+    parseChurchDateStart,
+    parseClientScheduledAt,
 } from '../../shared/utils/church-datetime';
 import { isServiceAssignmentFilled, normalizeGuestName } from './utils/service-assignment.utils';
 
@@ -67,6 +70,7 @@ interface AssignmentBatch {
     serviceName: string;
     worshipServiceId?: number;
     assignments: ServiceAssignment[];
+    slotRequiredByNumber?: Map<number, boolean>;
 }
 
 export interface AutoAssignWarningItem {
@@ -165,23 +169,43 @@ export class WorshipScheduleService {
     async createWorshipServiceTypeRole(
         dto: CreateWorshipServiceTypeRoleDto,
         userId: number,
-    ): Promise<WorshipServiceTypeRole> {
+    ): Promise<WorshipServiceTypeRole[]> {
         await this.findWorshipServiceTypeById(dto.worshipServiceTypeId);
         await this.ensureServiceRoleExists(dto.serviceRoleId);
 
-        const entity = this.worshipServiceTypeRoleRepository.create({
-            ...dto,
-            createdBy: userId,
-            updatedBy: userId,
+        const quantity = dto.quantity ?? 1;
+        const existingSlots = await this.worshipServiceTypeRoleRepository.find({
+            where: {
+                worshipServiceTypeId: dto.worshipServiceTypeId,
+                serviceRoleId: dto.serviceRoleId,
+            },
+            order: { slotNumber: 'DESC' },
         });
-        const saved = await this.worshipServiceTypeRoleRepository.save(entity);
-        return await this.findWorshipServiceTypeRoleById(saved.id);
+        const startSlot = existingSlots.length > 0 ? (existingSlots[0].slotNumber || 0) + 1 : 1;
+
+        const created: WorshipServiceTypeRole[] = [];
+        for (let index = 0; index < quantity; index++) {
+            const entity = this.worshipServiceTypeRoleRepository.create({
+                worshipServiceTypeId: dto.worshipServiceTypeId,
+                serviceRoleId: dto.serviceRoleId,
+                quantity: 1,
+                slotNumber: startSlot + index,
+                isRequired: dto.isRequired ?? true,
+                sortOrder: dto.sortOrder ?? 0,
+                createdBy: userId,
+                updatedBy: userId,
+            });
+            const saved = await this.worshipServiceTypeRoleRepository.save(entity);
+            created.push(await this.findWorshipServiceTypeRoleById(saved.id));
+        }
+
+        return created;
     }
 
     async findAllWorshipServiceTypeRoles(): Promise<WorshipServiceTypeRole[]> {
         return await this.worshipServiceTypeRoleRepository.find({
             relations: ['worshipServiceType', 'serviceRole'],
-            order: { sortOrder: 'ASC', id: 'ASC' },
+            order: { sortOrder: 'ASC', serviceRoleId: 'ASC', slotNumber: 'ASC', id: 'ASC' },
         });
     }
 
@@ -201,21 +225,11 @@ export class WorshipScheduleService {
         dto: UpdateWorshipServiceTypeRoleDto,
         userId: number,
     ): Promise<WorshipServiceTypeRole> {
-        const existing = await this.findWorshipServiceTypeRoleById(id);
-
-        if (
-            dto.worshipServiceTypeId &&
-            dto.worshipServiceTypeId !== existing.worshipServiceTypeId
-        ) {
-            await this.findWorshipServiceTypeById(dto.worshipServiceTypeId);
-        }
-
-        if (dto.serviceRoleId && dto.serviceRoleId !== existing.serviceRoleId) {
-            await this.ensureServiceRoleExists(dto.serviceRoleId);
-        }
+        await this.findWorshipServiceTypeRoleById(id);
 
         await this.worshipServiceTypeRoleRepository.update(id, {
-            ...dto,
+            isRequired: dto.isRequired,
+            sortOrder: dto.sortOrder,
             updatedBy: userId,
         });
         return await this.findWorshipServiceTypeRoleById(id);
@@ -237,7 +251,7 @@ export class WorshipScheduleService {
 
         const service = this.worshipServiceRepository.create({
             ...dto,
-            scheduledAt: new Date(dto.scheduledAt),
+            scheduledAt: parseClientScheduledAt(dto.scheduledAt),
             status: WorshipServiceStatus.DRAFT,
             createdBy: userId,
             updatedBy: userId,
@@ -254,7 +268,7 @@ export class WorshipScheduleService {
         const asDraft = dto.asDraft === true;
         const service = this.worshipServiceRepository.create({
             worshipServiceTypeId: type.id,
-            scheduledAt: new Date(dto.scheduledAt),
+            scheduledAt: parseClientScheduledAt(dto.scheduledAt),
             name: dto.name || type.name,
             notes: dto.notes,
             status: asDraft ? WorshipServiceStatus.DRAFT : WorshipServiceStatus.PUBLISHED,
@@ -267,24 +281,21 @@ export class WorshipScheduleService {
 
         const typeRoles = await this.worshipServiceTypeRoleRepository.find({
             where: { worshipServiceTypeId: type.id },
-            order: { sortOrder: 'ASC', id: 'ASC' },
+            order: { sortOrder: 'ASC', serviceRoleId: 'ASC', slotNumber: 'ASC', id: 'ASC' },
         });
 
         const assignments: ServiceAssignment[] = [];
         for (const typeRole of typeRoles) {
-            const quantity = typeRole.quantity || 1;
-            for (let slot = 1; slot <= quantity; slot++) {
-                assignments.push(
-                    this.serviceAssignmentRepository.create({
-                        worshipServiceId: savedService.id,
-                        serviceRoleId: typeRole.serviceRoleId,
-                        slotNumber: slot,
-                        status: AssignmentStatus.EMPTY,
-                        createdBy: userId,
-                        updatedBy: userId,
-                    }),
-                );
-            }
+            assignments.push(
+                this.serviceAssignmentRepository.create({
+                    worshipServiceId: savedService.id,
+                    serviceRoleId: typeRole.serviceRoleId,
+                    slotNumber: typeRole.slotNumber || 1,
+                    status: AssignmentStatus.EMPTY,
+                    createdBy: userId,
+                    updatedBy: userId,
+                }),
+            );
         }
 
         if (assignments.length > 0) {
@@ -312,10 +323,11 @@ export class WorshipScheduleService {
             throw new BadRequestException('Dia da semana inválido');
         }
 
-        const startFrom = dto.startFrom ? new Date(dto.startFrom) : new Date();
-        startFrom.setHours(0, 0, 0, 0);
+        const startFrom = dto.startFrom
+            ? parseChurchDateStart(dto.startFrom)
+            : DateTime.now().setZone(CHURCH_TIMEZONE).startOf('day').toJSDate();
 
-        const dates = this.getNextWeekdayOccurrences(startFrom, jsWeekday, dto.count);
+        const dates = getNextWeekdayOccurrencesInChurchTimezone(startFrom, jsWeekday, dto.count);
         const time = type.defaultTime || '19:00';
         const createdServices: WorshipService[] = [];
 
@@ -590,6 +602,86 @@ export class WorshipScheduleService {
         return `${value.weekYear}-W${String(value.weekNumber).padStart(2, '0')}`;
     }
 
+    private getRoleMembersUsedInMonth(
+        roleMembersUsedInMonth: Map<number, Set<number>>,
+        serviceRoleId: number,
+    ): Set<number> {
+        if (!roleMembersUsedInMonth.has(serviceRoleId)) {
+            roleMembersUsedInMonth.set(serviceRoleId, new Set<number>());
+        }
+        return roleMembersUsedInMonth.get(serviceRoleId)!;
+    }
+
+    private getRoleGroupsUsedInMonth(
+        roleGroupsUsedInMonth: Map<number, Set<number>>,
+        serviceRoleId: number,
+    ): Set<number> {
+        if (!roleGroupsUsedInMonth.has(serviceRoleId)) {
+            roleGroupsUsedInMonth.set(serviceRoleId, new Set<number>());
+        }
+        return roleGroupsUsedInMonth.get(serviceRoleId)!;
+    }
+
+    private recordRoleMonthUsage(
+        roleMembersUsedInMonth: Map<number, Set<number>>,
+        roleGroupsUsedInMonth: Map<number, Set<number>>,
+        serviceRoleId: number,
+        memberIds: number[],
+        groupId?: number,
+    ): void {
+        const usedMembers = this.getRoleMembersUsedInMonth(roleMembersUsedInMonth, serviceRoleId);
+        for (const memberId of memberIds) {
+            usedMembers.add(memberId);
+        }
+
+        if (groupId !== undefined) {
+            this.getRoleGroupsUsedInMonth(roleGroupsUsedInMonth, serviceRoleId).add(groupId);
+        }
+    }
+
+    private shouldAllowRoleRepeatsInMonth(
+        pool: RoleCandidatePool,
+        roleMembersUsedInMonth: Map<number, Set<number>>,
+        roleGroupsUsedInMonth: Map<number, Set<number>>,
+        serviceRoleId: number,
+    ): boolean {
+        const usedMembers = roleMembersUsedInMonth.get(serviceRoleId) || new Set<number>();
+        const usedGroups = roleGroupsUsedInMonth.get(serviceRoleId) || new Set<number>();
+
+        const allMembersUsed =
+            pool.eligibleMemberIds.length === 0 ||
+            pool.eligibleMemberIds.every((memberId) => usedMembers.has(memberId));
+
+        const allGroupsUsed =
+            pool.servingGroups.length === 0 ||
+            pool.servingGroups.every((group) => usedGroups.has(group.id));
+
+        return allMembersUsed && allGroupsUsed;
+    }
+
+    private buildMonthRotationAvoidance(
+        pool: RoleCandidatePool,
+        roleMembersUsedInMonth: Map<number, Set<number>>,
+        roleGroupsUsedInMonth: Map<number, Set<number>>,
+        serviceRoleId: number,
+    ): { avoidMembers: Set<number>; avoidGroups: Set<number> } | undefined {
+        if (
+            this.shouldAllowRoleRepeatsInMonth(
+                pool,
+                roleMembersUsedInMonth,
+                roleGroupsUsedInMonth,
+                serviceRoleId,
+            )
+        ) {
+            return undefined;
+        }
+
+        return {
+            avoidMembers: new Set(roleMembersUsedInMonth.get(serviceRoleId) || []),
+            avoidGroups: new Set(roleGroupsUsedInMonth.get(serviceRoleId) || []),
+        };
+    }
+
     private getMemberLoad(memberLoad: Map<number, number>, memberId: number): number {
         return memberLoad.get(memberId) || 0;
     }
@@ -609,34 +701,53 @@ export class WorshipScheduleService {
         candidates: AssignmentCandidate[],
         usedInWeek: Set<number>,
         memberLoad: Map<number, number>,
+        monthRotation?: { avoidMembers: Set<number>; avoidGroups: Set<number> },
     ): AssignmentCandidate | null {
-        const available = candidates.filter((candidate) => {
-            if (candidate.type === 'member') {
-                return !usedInWeek.has(candidate.memberId);
+        const pickFrom = (pool: AssignmentCandidate[]): AssignmentCandidate | null => {
+            const available = pool.filter((candidate) => {
+                if (candidate.type === 'member') {
+                    return !usedInWeek.has(candidate.memberId);
+                }
+                return this.areMembersAvailable(candidate.memberIds, usedInWeek);
+            });
+
+            if (available.length === 0) return null;
+
+            let minLoad = Number.MAX_SAFE_INTEGER;
+            for (const candidate of available) {
+                const load =
+                    candidate.type === 'member'
+                        ? this.getMemberLoad(memberLoad, candidate.memberId)
+                        : this.getGroupLoad(memberLoad, candidate.memberIds);
+                minLoad = Math.min(minLoad, load);
             }
-            return this.areMembersAvailable(candidate.memberIds, usedInWeek);
-        });
 
-        if (available.length === 0) return null;
+            const leastLoaded = available.filter((candidate) => {
+                const load =
+                    candidate.type === 'member'
+                        ? this.getMemberLoad(memberLoad, candidate.memberId)
+                        : this.getGroupLoad(memberLoad, candidate.memberIds);
+                return load === minLoad;
+            });
 
-        let minLoad = Number.MAX_SAFE_INTEGER;
-        for (const candidate of available) {
-            const load =
-                candidate.type === 'member'
-                    ? this.getMemberLoad(memberLoad, candidate.memberId)
-                    : this.getGroupLoad(memberLoad, candidate.memberIds);
-            minLoad = Math.min(minLoad, load);
+            return leastLoaded[Math.floor(Math.random() * leastLoaded.length)] || null;
+        };
+
+        const matchesMonthRotation = (candidate: AssignmentCandidate): boolean => {
+            if (!monthRotation) return true;
+            if (candidate.type === 'member') {
+                return !monthRotation.avoidMembers.has(candidate.memberId);
+            }
+            return !monthRotation.avoidGroups.has(candidate.groupId);
+        };
+
+        if (monthRotation) {
+            const withoutMonthRepeat = candidates.filter(matchesMonthRotation);
+            const preferred = pickFrom(withoutMonthRepeat);
+            if (preferred) return preferred;
         }
 
-        const leastLoaded = available.filter((candidate) => {
-            const load =
-                candidate.type === 'member'
-                    ? this.getMemberLoad(memberLoad, candidate.memberId)
-                    : this.getGroupLoad(memberLoad, candidate.memberIds);
-            return load === minLoad;
-        });
-
-        return leastLoaded[Math.floor(Math.random() * leastLoaded.length)] || null;
+        return pickFrom(candidates);
     }
 
     private async buildRoleCandidatePools(
@@ -697,6 +808,30 @@ export class WorshipScheduleService {
         return pool.eligibleMemberIds.filter((memberId) => !groupMemberIds.has(memberId));
     }
 
+    private buildSlotRequiredMap(
+        typeRoles: WorshipServiceTypeRole[] | undefined,
+        serviceRoleId: number,
+    ): Map<number, boolean> {
+        const map = new Map<number, boolean>();
+
+        for (const typeRole of typeRoles || []) {
+            if (typeRole.serviceRoleId === serviceRoleId) {
+                map.set(typeRole.slotNumber || 1, typeRole.isRequired ?? true);
+            }
+        }
+
+        return map;
+    }
+
+    private isSlotRequired(batch: AssignmentBatch, assignment: ServiceAssignment): boolean {
+        return batch.slotRequiredByNumber?.get(assignment.slotNumber) ?? true;
+    }
+
+    private countRequiredSlots(batch: AssignmentBatch): number {
+        return batch.assignments.filter((assignment) => this.isSlotRequired(batch, assignment))
+            .length;
+    }
+
     private buildAssignmentCandidates(
         pool: RoleCandidatePool,
         remainingSlots: number,
@@ -744,6 +879,8 @@ export class WorshipScheduleService {
         batch: AssignmentBatch,
         pools: Map<number, RoleCandidatePool>,
         locks: Map<string, Set<number>>,
+        roleMembersUsedInMonth: Map<number, Set<number>>,
+        roleGroupsUsedInMonth: Map<number, Set<number>>,
         memberLoad: Map<number, number>,
         userId: number | null,
         now: Date | null,
@@ -752,43 +889,66 @@ export class WorshipScheduleService {
         if (!pool) {
             return {
                 assignedSlots: 0,
-                unassigned: batch.assignments.map(() => ({
-                    scheduledAt: batch.scheduledAt,
-                    serviceRoleId: batch.serviceRoleId,
-                    serviceName: batch.serviceName,
-                    worshipServiceId: batch.worshipServiceId,
-                })),
+                unassigned: batch.assignments
+                    .filter((assignment) => this.isSlotRequired(batch, assignment))
+                    .map(() => ({
+                        scheduledAt: batch.scheduledAt,
+                        serviceRoleId: batch.serviceRoleId,
+                        serviceName: batch.serviceName,
+                        worshipServiceId: batch.worshipServiceId,
+                    })),
             };
         }
 
         const weekKey = this.getWeekKey(batch.scheduledAt);
         if (!locks.has(weekKey)) locks.set(weekKey, new Set<number>());
 
-        const openAssignments = [...batch.assignments];
+        const openAssignments = [...batch.assignments].sort((a, b) => a.slotNumber - b.slotNumber);
         const unassigned: AutoAssignPreviewSlot[] = [];
         let assignedSlots = 0;
 
+        const pushUnassignedRequired = () => {
+            for (const assignment of openAssignments) {
+                if (!this.isSlotRequired(batch, assignment)) continue;
+
+                unassigned.push({
+                    scheduledAt: batch.scheduledAt,
+                    serviceRoleId: batch.serviceRoleId,
+                    serviceName: batch.serviceName,
+                    worshipServiceId: batch.worshipServiceId,
+                });
+            }
+        };
+
         while (openAssignments.length > 0) {
+            const hasRequiredOpen = openAssignments.some((assignment) =>
+                this.isSlotRequired(batch, assignment),
+            );
+
+            if (!hasRequiredOpen) {
+                break;
+            }
+
             const candidates = this.buildAssignmentCandidates(
                 pool,
                 openAssignments.length,
                 locks.get(weekKey)!,
             );
+            const monthRotation = this.buildMonthRotationAvoidance(
+                pool,
+                roleMembersUsedInMonth,
+                roleGroupsUsedInMonth,
+                batch.serviceRoleId,
+            );
             const chosen = this.pickLeastLoadedRandomCandidate(
                 candidates,
                 locks.get(weekKey)!,
                 memberLoad,
+                monthRotation,
             );
 
             if (!chosen) {
-                for (let i = 0; i < openAssignments.length; i++) {
-                    unassigned.push({
-                        scheduledAt: batch.scheduledAt,
-                        serviceRoleId: batch.serviceRoleId,
-                        serviceName: batch.serviceName,
-                        worshipServiceId: batch.worshipServiceId,
-                    });
-                }
+                pushUnassignedRequired();
                 break;
             }
 
@@ -808,15 +968,30 @@ export class WorshipScheduleService {
                         assignment.updatedBy = userId;
                     }
 
-                    assignedSlots += 1;
+                    if (this.isSlotRequired(batch, assignment)) {
+                        assignedSlots += 1;
+                    }
                 }
 
                 this.lockMembers(chosen.memberIds, weekKey, locks, memberLoad);
+                this.recordRoleMonthUsage(
+                    roleMembersUsedInMonth,
+                    roleGroupsUsedInMonth,
+                    batch.serviceRoleId,
+                    chosen.memberIds,
+                    chosen.groupId,
+                );
                 continue;
             }
 
-            const assignment = openAssignments.shift();
-            if (!assignment) break;
+            const requiredIndex = openAssignments.findIndex((assignment) =>
+                this.isSlotRequired(batch, assignment),
+            );
+            if (requiredIndex === -1) {
+                break;
+            }
+
+            const [assignment] = openAssignments.splice(requiredIndex, 1);
 
             if (userId !== null && now !== null) {
                 assignment.memberId = chosen.memberId;
@@ -828,6 +1003,12 @@ export class WorshipScheduleService {
             }
 
             this.lockMembers([chosen.memberId], weekKey, locks, memberLoad);
+            this.recordRoleMonthUsage(
+                roleMembersUsedInMonth,
+                roleGroupsUsedInMonth,
+                batch.serviceRoleId,
+                [chosen.memberId],
+            );
             assignedSlots += 1;
         }
 
@@ -898,7 +1079,7 @@ export class WorshipScheduleService {
             return `• ${item.serviceName} — ${date}: ${slotLabel} de ${item.serviceRoleName}`;
         });
         return [
-            'Não há pessoas suficientes para respeitar a regra de não repetir membros na mesma semana.',
+            'Não há pessoas suficientes para respeitar as regras de escala (sem repetir na mesma semana e rotacionar todos os membros/grupos da função no mês antes de repetir).',
             '',
             'Cultos que podem ficar com vagas sem atribuição:',
             ...lines,
@@ -907,15 +1088,51 @@ export class WorshipScheduleService {
         ].join('\n');
     }
 
-    private async getWeeklyLocksFromExistingAssignments(
+    private seedRoleMonthUsageFromAssignments(
+        assignments: ServiceAssignment[],
+        roleMembersUsedInMonth: Map<number, Set<number>>,
+        roleGroupsUsedInMonth: Map<number, Set<number>>,
+    ): void {
+        for (const assignment of assignments) {
+            const memberIds: number[] = [];
+
+            if (assignment.memberId) {
+                memberIds.push(assignment.memberId);
+            }
+
+            if (assignment.servingGroup?.members?.length) {
+                for (const groupMember of assignment.servingGroup.members) {
+                    memberIds.push(groupMember.memberId);
+                }
+            }
+
+            if (memberIds.length === 0) continue;
+
+            this.recordRoleMonthUsage(
+                roleMembersUsedInMonth,
+                roleGroupsUsedInMonth,
+                assignment.serviceRoleId,
+                memberIds,
+                assignment.servingGroupId ?? undefined,
+            );
+        }
+    }
+
+    private async getAutoAssignHistory(
         month: number,
         year: number,
         selectedRoleIds: number[],
         excludeWorshipServiceIds: number[] = [],
-    ): Promise<Map<string, Set<number>>> {
-        const locks = new Map<string, Set<number>>();
-        const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
-        const end = new Date(year, month, 0, 23, 59, 59, 999);
+    ): Promise<{
+        weeklyLocks: Map<string, Set<number>>;
+        roleMembersUsedInMonth: Map<number, Set<number>>;
+        roleGroupsUsedInMonth: Map<number, Set<number>>;
+    }> {
+        const weeklyLocks = new Map<string, Set<number>>();
+        const roleMembersUsedInMonth = new Map<number, Set<number>>();
+        const roleGroupsUsedInMonth = new Map<number, Set<number>>();
+        const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
         const qb = this.serviceAssignmentRepository
             .createQueryBuilder('assignment')
@@ -926,7 +1143,10 @@ export class WorshipScheduleService {
             .andWhere(
                 '(assignment.member_id IS NOT NULL OR assignment.serving_group_id IS NOT NULL)',
             )
-            .andWhere('worshipService.scheduled_at BETWEEN :start AND :end', { start, end });
+            .andWhere('worshipService.scheduled_at BETWEEN :start AND :end', {
+                start: monthStart,
+                end: monthEnd,
+            });
 
         if (excludeWorshipServiceIds.length > 0) {
             qb.andWhere('assignment.worship_service_id NOT IN (:...excludedIds)', {
@@ -935,23 +1155,31 @@ export class WorshipScheduleService {
         }
 
         const existingAssignments = await qb.getMany();
+
+        this.seedRoleMonthUsageFromAssignments(
+            existingAssignments,
+            roleMembersUsedInMonth,
+            roleGroupsUsedInMonth,
+        );
+
         for (const assignment of existingAssignments) {
             if (!assignment.worshipService?.scheduledAt) continue;
+
             const weekKey = this.getWeekKey(assignment.worshipService.scheduledAt);
-            if (!locks.has(weekKey)) locks.set(weekKey, new Set<number>());
+            if (!weeklyLocks.has(weekKey)) weeklyLocks.set(weekKey, new Set<number>());
 
             if (assignment.memberId) {
-                locks.get(weekKey)!.add(assignment.memberId);
+                weeklyLocks.get(weekKey)!.add(assignment.memberId);
             }
 
             if (assignment.servingGroup?.members?.length) {
                 for (const groupMember of assignment.servingGroup.members) {
-                    locks.get(weekKey)!.add(groupMember.memberId);
+                    weeklyLocks.get(weekKey)!.add(groupMember.memberId);
                 }
             }
         }
 
-        return locks;
+        return { weeklyLocks, roleMembersUsedInMonth, roleGroupsUsedInMonth };
     }
 
     private buildPreviewBatches(
@@ -959,24 +1187,40 @@ export class WorshipScheduleService {
         selectedRoleIds: number[],
     ): AssignmentBatch[] {
         const selectedRoleSet = new Set(selectedRoleIds);
-        const batches: AssignmentBatch[] = [];
+        const batchMap = new Map<string, AssignmentBatch>();
 
         for (const planned of plannedServices) {
-            for (const requiredRole of planned.type.requiredRoles || []) {
-                if (!selectedRoleSet.has(requiredRole.serviceRoleId)) continue;
+            for (const typeRole of planned.type.requiredRoles || []) {
+                if (!selectedRoleSet.has(typeRole.serviceRoleId)) continue;
 
-                const requiredQuantity = requiredRole.quantity || 1;
-                batches.push({
-                    scheduledAt: planned.scheduledAt,
-                    serviceRoleId: requiredRole.serviceRoleId,
-                    requiredQuantity,
-                    serviceName: planned.type.name,
-                    assignments: Array.from(
-                        { length: requiredQuantity },
-                        () => ({}) as ServiceAssignment,
-                    ),
-                });
+                const key = `${planned.scheduledAt.toISOString()}:${typeRole.serviceRoleId}`;
+                if (!batchMap.has(key)) {
+                    batchMap.set(key, {
+                        scheduledAt: planned.scheduledAt,
+                        serviceRoleId: typeRole.serviceRoleId,
+                        requiredQuantity: 0,
+                        serviceName: planned.type.name,
+                        assignments: [],
+                        slotRequiredByNumber: new Map<number, boolean>(),
+                    });
+                }
+
+                const batch = batchMap.get(key)!;
+                batch.assignments.push({
+                    serviceRoleId: typeRole.serviceRoleId,
+                    slotNumber: typeRole.slotNumber || 1,
+                } as ServiceAssignment);
+                batch.slotRequiredByNumber!.set(
+                    typeRole.slotNumber || 1,
+                    typeRole.isRequired ?? true,
+                );
+                batch.requiredQuantity = batch.assignments.length;
             }
+        }
+
+        const batches = Array.from(batchMap.values());
+        for (const batch of batches) {
+            batch.assignments.sort((a, b) => a.slotNumber - b.slotNumber);
         }
 
         return batches.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
@@ -1016,6 +1260,10 @@ export class WorshipScheduleService {
                         serviceName,
                         worshipServiceId: service.id,
                         assignments: [],
+                        slotRequiredByNumber: this.buildSlotRequiredMap(
+                            service.worshipServiceType?.requiredRoles,
+                            assignment.serviceRoleId,
+                        ),
                     });
                 }
 
@@ -1051,12 +1299,13 @@ export class WorshipScheduleService {
         const batches = this.buildAssignmentBatchesFromServices(services, selectedRoleIds, {
             onlyUnassigned: options?.onlyUnassigned,
         });
-        const locks = await this.getWeeklyLocksFromExistingAssignments(
-            month,
-            year,
-            selectedRoleIds,
-            options?.excludeWorshipServiceIds || [],
-        );
+        const { weeklyLocks, roleMembersUsedInMonth, roleGroupsUsedInMonth } =
+            await this.getAutoAssignHistory(
+                month,
+                year,
+                selectedRoleIds,
+                options?.excludeWorshipServiceIds || [],
+            );
         const memberLoad = new Map<number, number>();
         const now = options?.persist ? new Date() : null;
         const unassigned: AutoAssignPreviewSlot[] = [];
@@ -1065,11 +1314,13 @@ export class WorshipScheduleService {
         const assignmentsToSave: ServiceAssignment[] = [];
 
         for (const batch of batches) {
-            totalSlots += batch.assignments.length;
+            totalSlots += this.countRequiredSlots(batch);
             const result = this.assignMembersToBatchSlots(
                 batch,
                 pools,
-                locks,
+                weeklyLocks,
+                roleMembersUsedInMonth,
+                roleGroupsUsedInMonth,
                 memberLoad,
                 options?.persist ? options.userId ?? null : null,
                 now,
@@ -1111,22 +1362,21 @@ export class WorshipScheduleService {
     ): Promise<AutoAssignResult> {
         const pools = await this.buildRoleCandidatePools(selectedRoleIds, excludedMemberIds);
         const batches = this.buildPreviewBatches(plannedServices, selectedRoleIds);
-        const locks = await this.getWeeklyLocksFromExistingAssignments(
-            month,
-            year,
-            selectedRoleIds,
-        );
+        const { weeklyLocks, roleMembersUsedInMonth, roleGroupsUsedInMonth } =
+            await this.getAutoAssignHistory(month, year, selectedRoleIds);
         const memberLoad = new Map<number, number>();
         const unassigned: AutoAssignPreviewSlot[] = [];
         let assignedSlots = 0;
         let totalSlots = 0;
 
         for (const batch of batches) {
-            totalSlots += batch.assignments.length;
+            totalSlots += this.countRequiredSlots(batch);
             const result = this.assignMembersToBatchSlots(
                 batch,
                 pools,
-                locks,
+                weeklyLocks,
+                roleMembersUsedInMonth,
+                roleGroupsUsedInMonth,
                 memberLoad,
                 null,
                 null,
@@ -1246,7 +1496,7 @@ export class WorshipScheduleService {
 
         await this.worshipServiceRepository.update(id, {
             ...dto,
-            scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+            scheduledAt: dto.scheduledAt ? parseClientScheduledAt(dto.scheduledAt) : undefined,
             updatedBy: userId,
         });
         return await this.findWorshipServiceById(id);
@@ -1363,11 +1613,18 @@ export class WorshipScheduleService {
         if (dto.notes !== undefined) {
             assignment.notes = dto.notes?.trim() || null;
         }
-        assignment.status = isServiceAssignmentFilled(assignment)
-            ? AssignmentStatus.CONFIRMED
-            : AssignmentStatus.EMPTY;
-        assignment.assignedBy = userId;
-        assignment.assignedAt = new Date();
+
+        const filled = isServiceAssignmentFilled(assignment);
+        assignment.status = filled ? AssignmentStatus.CONFIRMED : AssignmentStatus.EMPTY;
+
+        if (filled) {
+            assignment.assignedBy = userId;
+            assignment.assignedAt = new Date();
+        } else {
+            assignment.assignedBy = null;
+            assignment.assignedAt = null;
+        }
+
         assignment.updatedBy = userId;
 
         return await this.serviceAssignmentRepository.save(assignment);
@@ -1476,22 +1733,6 @@ export class WorshipScheduleService {
 
     private combineDateWithTime(date: Date, time: string): Date {
         return combineDateWithTimeInChurchTimezone(date, time);
-    }
-
-    private getNextWeekdayOccurrences(startFrom: Date, jsWeekday: number, count: number): Date[] {
-        const dates: Date[] = [];
-        const cursor = new Date(startFrom);
-
-        while (cursor.getDay() !== jsWeekday) {
-            cursor.setDate(cursor.getDate() + 1);
-        }
-
-        while (dates.length < count) {
-            dates.push(new Date(cursor));
-            cursor.setDate(cursor.getDate() + 7);
-        }
-
-        return dates;
     }
 
     private async ensureServiceRoleExists(id: number): Promise<void> {

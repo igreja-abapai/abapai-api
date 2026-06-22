@@ -56,6 +56,7 @@ export class CreateWorshipServiceTypeRoleDto {
     @Type(() => Number)
     @IsInt()
     @Min(1)
+    @Max(20)
     quantity?: number;
 
     @IsOptional()
@@ -69,7 +70,17 @@ export class CreateWorshipServiceTypeRoleDto {
     sortOrder?: number;
 }
 
-export class UpdateWorshipServiceTypeRoleDto extends PartialType(CreateWorshipServiceTypeRoleDto) {}
+export class UpdateWorshipServiceTypeRoleDto {
+    @IsOptional()
+    @IsBoolean()
+    isRequired?: boolean;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(0)
+    sortOrder?: number;
+}
 
 export class CreateWorshipServiceDto {
     @IsOptional()

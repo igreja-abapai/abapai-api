@@ -4,7 +4,7 @@ import { WorshipServiceType } from './worship-service-type.entity';
 import { ServiceRole } from './service-role.entity';
 
 @Entity('worship_service_type_roles')
-@Unique(['worshipServiceTypeId', 'serviceRoleId'])
+@Unique(['worshipServiceTypeId', 'serviceRoleId', 'slotNumber'])
 export class WorshipServiceTypeRole extends IdTimestampBaseEntity {
     @Column({ name: 'worship_service_type_id' })
     worshipServiceTypeId: number;
@@ -22,6 +22,9 @@ export class WorshipServiceTypeRole extends IdTimestampBaseEntity {
 
     @Column({ default: 1 })
     quantity: number;
+
+    @Column({ name: 'slot_number', default: 1 })
+    slotNumber: number;
 
     @Column({ name: 'is_required', default: true })
     isRequired: boolean;
