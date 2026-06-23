@@ -4,6 +4,7 @@ export function isServiceAssignmentFilled(assignment: ServiceAssignment): boolea
     return Boolean(
         assignment.memberId ||
             assignment.servingGroupId ||
+            assignment.preacherId ||
             (assignment.guestName && assignment.guestName.trim()),
     );
 }

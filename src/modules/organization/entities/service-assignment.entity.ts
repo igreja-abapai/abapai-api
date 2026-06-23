@@ -5,6 +5,7 @@ import { WorshipService } from './worship-service.entity';
 import { ServiceRole } from './service-role.entity';
 import { Member } from '../../member/entities/member.entity';
 import { ServingGroup } from './serving-group.entity';
+import { Preacher } from './preacher.entity';
 
 @Entity('service_assignments')
 export class ServiceAssignment extends IdTimestampBaseEntity {
@@ -56,4 +57,14 @@ export class ServiceAssignment extends IdTimestampBaseEntity {
 
     @Column({ name: 'guest_name', type: 'varchar', length: 255, nullable: true })
     guestName: string;
+
+    @Column({ name: 'preacher_id', nullable: true })
+    preacherId: number;
+
+    @ManyToOne(() => Preacher, (preacher) => preacher.assignments, {
+        nullable: true,
+        onDelete: 'SET NULL',
+    })
+    @JoinColumn({ name: 'preacher_id' })
+    preacher: Preacher;
 }

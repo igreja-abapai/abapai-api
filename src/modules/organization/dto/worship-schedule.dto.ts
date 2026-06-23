@@ -250,6 +250,13 @@ export class AssignServiceAssignmentDto {
 
     @IsOptional()
     @ValidateIf((_, value) => value !== null)
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    preacherId?: number | null;
+
+    @IsOptional()
+    @ValidateIf((_, value) => value !== null)
     @IsString()
     notes?: string | null;
 }

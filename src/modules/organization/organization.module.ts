@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AwsModule } from '../aws/aws.module';
 import { Member } from '../member/entities/member.entity';
 import { ChurchPositionController } from './church-position.controller';
 import { ChurchPositionService } from './church-position.service';
@@ -22,11 +23,15 @@ import { WorshipService } from './entities/worship-service.entity';
 import { ServiceRoleController } from './service-role.controller';
 import { ServiceRoleService } from './service-role.service';
 import { ServingGroupService } from './serving-group.service';
+import { Preacher } from './entities/preacher.entity';
+import { PreacherController } from './preacher.controller';
+import { PreacherService } from './preacher.service';
 import { WorshipSchedulesController } from './worship-schedules.controller';
 import { WorshipScheduleService } from './worship-schedule.service';
 
 @Module({
     imports: [
+        AwsModule,
         TypeOrmModule.forFeature([
             Member,
             Department,
@@ -42,12 +47,14 @@ import { WorshipScheduleService } from './worship-schedule.service';
             WorshipServiceTypeRole,
             WorshipService,
             ServiceAssignment,
+            Preacher,
         ]),
     ],
     controllers: [
         DepartmentController,
         ChurchPositionController,
         ServiceRoleController,
+        PreacherController,
         WorshipSchedulesController,
     ],
     providers: [
@@ -56,6 +63,7 @@ import { WorshipScheduleService } from './worship-schedule.service';
         ChurchPositionService,
         ServiceRoleService,
         ServingGroupService,
+        PreacherService,
         WorshipScheduleService,
     ],
     exports: [
@@ -64,6 +72,7 @@ import { WorshipScheduleService } from './worship-schedule.service';
         ChurchPositionService,
         ServiceRoleService,
         ServingGroupService,
+        PreacherService,
         WorshipScheduleService,
     ],
 })

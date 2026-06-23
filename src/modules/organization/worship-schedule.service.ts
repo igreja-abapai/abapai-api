@@ -34,6 +34,7 @@ import {
     parseChurchDateStart,
     parseClientScheduledAt,
 } from '../../shared/utils/church-datetime';
+import { PreacherService } from './preacher.service';
 import { isServiceAssignmentFilled, normalizeGuestName } from './utils/service-assignment.utils';
 
 interface PlannedMonthService {
@@ -115,6 +116,7 @@ export class WorshipScheduleService {
         @InjectRepository(ServingGroup)
         private readonly servingGroupRepository: Repository<ServingGroup>,
         private readonly eligibilityService: EligibilityService,
+        private readonly preacherService: PreacherService,
     ) {}
 
     async createWorshipServiceType(
@@ -1433,6 +1435,7 @@ export class WorshipScheduleService {
                 'assignments.serviceRole',
                 'assignments.member',
                 'assignments.servingGroup',
+                'assignments.preacher',
             ],
             order: { scheduledAt: 'ASC', id: 'ASC' },
         });
@@ -1448,6 +1451,7 @@ export class WorshipScheduleService {
                 'assignments.serviceRole',
                 'assignments.member',
                 'assignments.servingGroup',
+                'assignments.preacher',
             ],
         });
         if (!service) {
@@ -1471,6 +1475,7 @@ export class WorshipScheduleService {
                 'assignments.serviceRole',
                 'assignments.member',
                 'assignments.servingGroup',
+                'assignments.preacher',
             ],
             order: { scheduledAt: 'ASC', id: 'ASC' },
         });
@@ -1555,6 +1560,7 @@ export class WorshipScheduleService {
             assignment.memberId = null;
             assignment.servingGroupId = null;
             assignment.guestName = null;
+            assignment.preacherId = null;
             assignment.notes = null;
             assignment.status = AssignmentStatus.EMPTY;
             assignment.assignedBy = null;
@@ -1577,11 +1583,14 @@ export class WorshipScheduleService {
         const memberId = dto.memberId || null;
         const servingGroupId = dto.servingGroupId || null;
         const guestName = normalizeGuestName(dto.guestName);
-        const filledModes = [memberId, servingGroupId, guestName].filter(Boolean).length;
+        const preacherId = dto.preacherId || null;
+        const filledModes = [memberId, servingGroupId, guestName, preacherId].filter(
+            Boolean,
+        ).length;
 
         if (filledModes > 1) {
             throw new BadRequestException(
-                'Informe apenas um tipo de atribuição: membro, grupo ou convidado',
+                'Informe apenas um tipo de atribuição: membro, grupo ou pregador convidado',
             );
         }
 
@@ -1593,7 +1602,7 @@ export class WorshipScheduleService {
             throw new NotFoundException('Vaga de escala não encontrada');
         }
 
-        if (guestName && !assignment.serviceRole?.allowsGuestAssignment) {
+        if ((guestName || preacherId) && !assignment.serviceRole?.allowsGuestAssignment) {
             throw new BadRequestException(
                 'Esta função não permite atribuição de convidado externo',
             );
@@ -1607,9 +1616,14 @@ export class WorshipScheduleService {
             await this.ensureServingGroupExists(servingGroupId);
         }
 
+        if (preacherId) {
+            await this.preacherService.ensurePreacherExists(preacherId);
+        }
+
         assignment.memberId = memberId;
         assignment.servingGroupId = servingGroupId;
-        assignment.guestName = guestName;
+        assignment.guestName = preacherId ? null : guestName;
+        assignment.preacherId = preacherId;
         if (dto.notes !== undefined) {
             assignment.notes = dto.notes?.trim() || null;
         }
@@ -1691,6 +1705,7 @@ export class WorshipScheduleService {
             target.memberId = source.memberId || null;
             target.servingGroupId = source.servingGroupId || null;
             target.guestName = source.guestName || null;
+            target.preacherId = source.preacherId || null;
             target.notes = source.notes;
             target.status = isServiceAssignmentFilled(source)
                 ? AssignmentStatus.CONFIRMED
