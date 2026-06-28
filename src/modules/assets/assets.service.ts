@@ -15,6 +15,7 @@ import { Asset } from './entities/asset.entity';
 import { AssetOrigin } from './enums/asset-origin.enum';
 import { AssetStatus } from './enums/asset-status.enum';
 import { normalizeSearchText, translateSqlExpression } from '../../shared/utils/search-text.utils';
+import { CHURCH_NAME } from '../../shared/constants/church.constants';
 
 @Injectable()
 export class AssetsService {
@@ -336,25 +337,78 @@ export class AssetsService {
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Inventário');
+        const columnCount = 15;
+
+        const generatedAt = new Date().toLocaleString('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+        });
+
+        worksheet.addRow([CHURCH_NAME]);
+        worksheet.addRow(['Inventário de Patrimônio']);
+        worksheet.addRow([`Gerado em: ${generatedAt}`]);
+        worksheet.addRow([]);
+
+        worksheet.mergeCells(1, 1, 1, columnCount);
+        worksheet.mergeCells(2, 1, 2, columnCount);
+        worksheet.mergeCells(3, 1, 3, columnCount);
+
+        const churchCell = worksheet.getCell('A1');
+        churchCell.font = { bold: true, size: 16 };
+        churchCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const titleCell = worksheet.getCell('A2');
+        titleCell.font = { bold: true, size: 12 };
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const dateCell = worksheet.getCell('A3');
+        dateCell.font = { size: 10, color: { argb: 'FF737373' } };
+        dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
         worksheet.columns = [
-            { header: 'Código', key: 'code', width: 16 },
-            { header: 'Descrição', key: 'description', width: 32 },
-            { header: 'Categoria', key: 'category', width: 18 },
-            { header: 'Local', key: 'location', width: 18 },
-            { header: 'Departamento', key: 'department', width: 18 },
-            { header: 'Responsável', key: 'responsible', width: 22 },
-            { header: 'Qtd', key: 'quantity', width: 8 },
-            { header: 'Data aquisição', key: 'acquisitionDate', width: 14 },
-            { header: 'Valor unit. (BRL)', key: 'acquisitionValue', width: 16 },
-            { header: 'Valor total (BRL)', key: 'totalValue', width: 16 },
-            { header: 'Origem', key: 'origin', width: 14 },
-            { header: 'Fornecedor/Doador', key: 'supplierOrDonor', width: 22 },
-            { header: 'Nota/cupom', key: 'invoiceNumber', width: 22 },
-            { header: 'Situação', key: 'status', width: 14 },
-            { header: 'Conservação', key: 'conservationState', width: 12 },
-            { header: 'Observações', key: 'notes', width: 24 },
+            { key: 'code', width: 16 },
+            { key: 'description', width: 32 },
+            { key: 'category', width: 18 },
+            { key: 'location', width: 18 },
+            { key: 'department', width: 18 },
+            { key: 'responsible', width: 22 },
+            { key: 'quantity', width: 8 },
+            { key: 'acquisitionDate', width: 14 },
+            { key: 'acquisitionValue', width: 16 },
+            { key: 'totalValue', width: 16 },
+            { key: 'origin', width: 14 },
+            { key: 'supplierOrDonor', width: 22 },
+            { key: 'invoiceNumber', width: 22 },
+            { key: 'status', width: 14 },
+            { key: 'conservationState', width: 12 },
+            { key: 'notes', width: 24 },
         ];
+
+        worksheet.addRow([
+            'Código',
+            'Descrição',
+            'Categoria',
+            'Local',
+            'Departamento',
+            'Responsável',
+            'Qtd',
+            'Data aquisição',
+            'Valor unit. (BRL)',
+            'Valor total (BRL)',
+            'Origem',
+            'Fornecedor/Doador',
+            'Nota/cupom',
+            'Situação',
+            'Conservação',
+            'Observações',
+        ]);
+
+        const headerRow = worksheet.getRow(5);
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF5F5F5' },
+        };
 
         let totalQuantity = 0;
         let totalValue = 0;
