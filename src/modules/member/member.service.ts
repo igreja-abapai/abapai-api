@@ -48,6 +48,7 @@ export class MemberService {
         isActive?: boolean;
         deletedOnly?: boolean;
         isPaginated?: boolean;
+        withPrimaryPosition?: boolean;
     }): Promise<{
         data: Member[];
         total: number;
@@ -105,6 +106,14 @@ export class MemberService {
                             { phonePrefix: `${phoneDigits}%` },
                         );
                     }
+
+                    qb.orWhere(
+                        `${translateSqlExpression('primaryPosition.name')} ~* :namePattern`,
+                        { namePattern },
+                    ).orWhere(
+                        `${translateSqlExpression('secondaryPosition.name')} ~* :namePattern`,
+                        { namePattern },
+                    );
                 }),
             );
         }
@@ -121,6 +130,10 @@ export class MemberService {
             queryBuilder.andWhere('member.isActive = :isActive', {
                 isActive: query.isActive,
             });
+        }
+
+        if (query?.withPrimaryPosition) {
+            queryBuilder.andWhere('member.primaryPositionId IS NOT NULL');
         }
 
         // Apply sorting with accent-insensitive comparison
