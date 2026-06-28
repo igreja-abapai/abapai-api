@@ -49,6 +49,7 @@ export class MemberService {
         deletedOnly?: boolean;
         isPaginated?: boolean;
         withPrimaryPosition?: boolean;
+        incompleteProfile?: boolean;
     }): Promise<{
         data: Member[];
         total: number;
@@ -134,6 +135,24 @@ export class MemberService {
 
         if (query?.withPrimaryPosition) {
             queryBuilder.andWhere('member.primaryPositionId IS NOT NULL');
+        }
+
+        if (query?.incompleteProfile) {
+            queryBuilder.andWhere(
+                new Brackets((qb) => {
+                    qb.where("member.cpf IS NULL OR TRIM(member.cpf) = ''")
+                        .orWhere("member.phone IS NULL OR TRIM(member.phone) = ''")
+                        .orWhere('member.birthdate IS NULL')
+                        .orWhere(
+                            "member.yearOfConversion IS NULL OR TRIM(member.yearOfConversion) = ''",
+                        )
+                        .orWhere("member.admissionDate IS NULL OR TRIM(member.admissionDate) = ''")
+                        .orWhere(
+                            "(member.isBaptized = true AND (member.yearOfBaptism IS NULL OR TRIM(member.yearOfBaptism) = ''))",
+                        )
+                        .orWhere("address.streetName IS NULL OR TRIM(address.streetName) = ''");
+                }),
+            );
         }
 
         // Apply sorting with accent-insensitive comparison
