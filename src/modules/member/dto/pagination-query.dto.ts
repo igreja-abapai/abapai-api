@@ -79,4 +79,15 @@ export class PaginationQueryDto {
         return Boolean(value);
     })
     incompleteProfile?: boolean;
+
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (value === undefined || value === null) return undefined;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+            return value.toLowerCase() === 'true';
+        }
+        return Boolean(value);
+    })
+    discipleshipPending?: boolean;
 }

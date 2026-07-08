@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { IdTimestampBaseEntity } from '../../../shared/common/id-timestamp.base-entity';
 import { Address } from '../../address/entities/address.entity';
 import { ChurchPosition } from '../../organization/entities/church-position.entity';
@@ -6,6 +6,7 @@ import { EducationLevel } from './education-level.enum';
 import { Gender } from './gender.enum';
 import { MaritalStatus } from './marital-status.enum';
 import { AdmissionType } from './admission-type.enum';
+import { MemberDiscipleshipCase } from './member-discipleship-case.entity';
 
 @Entity()
 export class Member extends IdTimestampBaseEntity {
@@ -131,4 +132,7 @@ export class Member extends IdTimestampBaseEntity {
 
     @Column({ type: 'timestamp', nullable: true })
     deletedAt: Date;
+
+    @OneToMany(() => MemberDiscipleshipCase, (discipleshipCase) => discipleshipCase.member)
+    discipleshipCases?: MemberDiscipleshipCase[];
 }

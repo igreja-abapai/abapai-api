@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, IsNull, Repository } from 'typeorm';
 import { buildWordStartPattern } from '../../shared/utils/word-search.utils';
@@ -10,12 +10,18 @@ import {
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { Member } from './entities/member.entity';
+import { MemberDiscipleshipCase } from './entities/member-discipleship-case.entity';
+import { MemberDiscipleshipCaseStatus } from './entities/member-discipleship-case-status.enum';
+import { UpsertMemberDiscipleshipDto } from './dto/upsert-member-discipleship.dto';
+import { UpdateMemberDiscipleshipCaseDto } from './dto/update-member-discipleship-case.dto';
 
 @Injectable()
 export class MemberService {
     constructor(
         @InjectRepository(Member)
         private memberRepository: Repository<Member>,
+        @InjectRepository(MemberDiscipleshipCase)
+        private discipleshipCaseRepository: Repository<MemberDiscipleshipCase>,
     ) {}
 
     async create(createMemberDto: CreateMemberDto, userId: number): Promise<Member> {
@@ -50,6 +56,7 @@ export class MemberService {
         isPaginated?: boolean;
         withPrimaryPosition?: boolean;
         incompleteProfile?: boolean;
+        discipleshipPending?: boolean;
     }): Promise<{
         data: Member[];
         total: number;
@@ -155,6 +162,40 @@ export class MemberService {
             );
         }
 
+        if (query?.discipleshipPending !== undefined) {
+            if (query.discipleshipPending) {
+                queryBuilder.andWhere(
+                    `EXISTS (
+                        SELECT 1
+                        FROM member_discipleship_case mdc
+                        WHERE mdc.member_id = member.id
+                          AND mdc.status IN (:...openStatuses)
+                    )`,
+                    {
+                        openStatuses: [
+                            MemberDiscipleshipCaseStatus.PENDING,
+                            MemberDiscipleshipCaseStatus.IN_PROGRESS,
+                        ],
+                    },
+                );
+            } else {
+                queryBuilder.andWhere(
+                    `NOT EXISTS (
+                        SELECT 1
+                        FROM member_discipleship_case mdc
+                        WHERE mdc.member_id = member.id
+                          AND mdc.status IN (:...openStatuses)
+                    )`,
+                    {
+                        openStatuses: [
+                            MemberDiscipleshipCaseStatus.PENDING,
+                            MemberDiscipleshipCaseStatus.IN_PROGRESS,
+                        ],
+                    },
+                );
+            }
+        }
+
         // Apply sorting with accent-insensitive comparison
         // Boolean and numeric columns don't need accent normalization
         const booleanColumns = [
@@ -219,6 +260,7 @@ export class MemberService {
             const allData = hasComputedSort
                 ? (await queryBuilder.getRawAndEntities()).entities
                 : await queryBuilder.getMany();
+            await this.enrichMembersWithDiscipleshipPending(allData);
             return {
                 data: allData,
                 total,
@@ -231,6 +273,7 @@ export class MemberService {
         // Paginated path
         const { entities } = await queryBuilder.getRawAndEntities();
         const data = entities;
+        await this.enrichMembersWithDiscipleshipPending(data);
 
         const totalPages = isPaginated ? Math.ceil(total / limit) : 1;
 
@@ -244,10 +287,21 @@ export class MemberService {
     }
 
     async findOne(id: number): Promise<Member> {
-        return await this.memberRepository.findOne({
+        const member = await this.memberRepository.findOne({
             where: { id, deletedAt: IsNull() },
             relations: ['address', 'primaryPosition', 'secondaryPosition'],
         });
+
+        if (!member) return member as any;
+
+        const currentDiscipleshipCase = await this.getOpenDiscipleshipCase(id);
+        (
+            member as Member & { currentDiscipleshipCase?: MemberDiscipleshipCase | null }
+        ).currentDiscipleshipCase = currentDiscipleshipCase;
+        (member as Member & { hasDiscipleshipPending?: boolean }).hasDiscipleshipPending =
+            Boolean(currentDiscipleshipCase);
+
+        return member;
     }
 
     async update(id: number, updateMemberDto: UpdateMemberDto, userId: number): Promise<Member> {
@@ -301,6 +355,101 @@ export class MemberService {
         return await this.findOne(id);
     }
 
+    async getDiscipleshipCases(memberId: number): Promise<MemberDiscipleshipCase[]> {
+        return await this.discipleshipCaseRepository.find({
+            where: { memberId },
+            order: { openedAt: 'DESC', id: 'DESC' },
+        });
+    }
+
+    async upsertDiscipleship(
+        memberId: number,
+        dto: UpsertMemberDiscipleshipDto,
+        userId: number,
+    ): Promise<Member> {
+        if (dto.needsDiscipleship) {
+            const openCase = await this.getOpenDiscipleshipCase(memberId);
+
+            if (openCase) {
+                openCase.reason = dto.reason?.trim() || openCase.reason || null;
+                openCase.notes = dto.notes?.trim() || openCase.notes || null;
+                openCase.updatedBy = userId;
+                await this.discipleshipCaseRepository.save(openCase);
+            } else {
+                const created = this.discipleshipCaseRepository.create({
+                    memberId,
+                    status: MemberDiscipleshipCaseStatus.PENDING,
+                    reason: dto.reason?.trim() || null,
+                    notes: dto.notes?.trim() || null,
+                    openedAt: new Date(),
+                    createdBy: userId,
+                    updatedBy: userId,
+                });
+                await this.discipleshipCaseRepository.save(created);
+            }
+        } else {
+            const openCases = await this.discipleshipCaseRepository.find({
+                where: [
+                    { memberId, status: MemberDiscipleshipCaseStatus.PENDING },
+                    { memberId, status: MemberDiscipleshipCaseStatus.IN_PROGRESS },
+                ],
+            });
+
+            if (openCases.length) {
+                for (const openCase of openCases) {
+                    openCase.status = MemberDiscipleshipCaseStatus.DONE;
+                    openCase.closedAt = new Date();
+                    openCase.closedBy = userId;
+                    if (dto.notes !== undefined) {
+                        openCase.notes = dto.notes?.trim() || null;
+                    }
+                    openCase.updatedBy = userId;
+                }
+                await this.discipleshipCaseRepository.save(openCases);
+            }
+        }
+
+        return await this.findOne(memberId);
+    }
+
+    async updateDiscipleshipCase(
+        memberId: number,
+        caseId: number,
+        dto: UpdateMemberDiscipleshipCaseDto,
+        userId: number,
+    ): Promise<MemberDiscipleshipCase> {
+        const discipleshipCase = await this.discipleshipCaseRepository.findOne({
+            where: { id: caseId, memberId },
+        });
+
+        if (!discipleshipCase) {
+            throw new NotFoundException('Caso de discipulado não encontrado');
+        }
+
+        discipleshipCase.status = dto.status;
+        if (dto.reason !== undefined) {
+            discipleshipCase.reason = dto.reason?.trim() || null;
+        }
+        if (dto.notes !== undefined) {
+            discipleshipCase.notes = dto.notes?.trim() || null;
+        }
+
+        const isClosingStatus =
+            dto.status === MemberDiscipleshipCaseStatus.DONE ||
+            dto.status === MemberDiscipleshipCaseStatus.CANCELLED;
+
+        if (isClosingStatus) {
+            discipleshipCase.closedAt = discipleshipCase.closedAt || new Date();
+            discipleshipCase.closedBy = userId;
+        } else {
+            discipleshipCase.closedAt = null;
+            discipleshipCase.closedBy = null;
+        }
+
+        discipleshipCase.updatedBy = userId;
+        return await this.discipleshipCaseRepository.save(discipleshipCase);
+    }
+
     async findMembersWithBirthdayToday(month: number, day: number): Promise<Member[]> {
         return await this.memberRepository
             .createQueryBuilder('member')
@@ -308,5 +457,46 @@ export class MemberService {
             .andWhere('EXTRACT(DAY FROM member.birthdate) = :day', { day })
             .andWhere('member.deletedAt IS NULL')
             .getMany();
+    }
+
+    private async getOpenDiscipleshipCase(
+        memberId: number,
+    ): Promise<MemberDiscipleshipCase | null> {
+        return await this.discipleshipCaseRepository
+            .createQueryBuilder('discipleshipCase')
+            .where('discipleshipCase.memberId = :memberId', { memberId })
+            .andWhere('discipleshipCase.status IN (:...statuses)', {
+                statuses: [
+                    MemberDiscipleshipCaseStatus.PENDING,
+                    MemberDiscipleshipCaseStatus.IN_PROGRESS,
+                ],
+            })
+            .orderBy('discipleshipCase.openedAt', 'DESC')
+            .addOrderBy('discipleshipCase.id', 'DESC')
+            .getOne();
+    }
+
+    private async enrichMembersWithDiscipleshipPending(members: Member[]): Promise<void> {
+        if (!members.length) return;
+
+        const memberIds = members.map((member) => Number(member.id));
+        const openCases = await this.discipleshipCaseRepository
+            .createQueryBuilder('discipleshipCase')
+            .select('discipleshipCase.memberId', 'memberId')
+            .where('discipleshipCase.memberId IN (:...memberIds)', { memberIds })
+            .andWhere('discipleshipCase.status IN (:...statuses)', {
+                statuses: [
+                    MemberDiscipleshipCaseStatus.PENDING,
+                    MemberDiscipleshipCaseStatus.IN_PROGRESS,
+                ],
+            })
+            .groupBy('discipleshipCase.memberId')
+            .getRawMany<{ memberId: string }>();
+
+        const withPending = new Set(openCases.map((row) => Number(row.memberId)));
+        for (const member of members) {
+            (member as Member & { hasDiscipleshipPending?: boolean }).hasDiscipleshipPending =
+                withPending.has(Number(member.id));
+        }
     }
 }
