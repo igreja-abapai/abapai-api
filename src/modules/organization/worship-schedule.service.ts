@@ -1488,8 +1488,8 @@ export class WorshipScheduleService {
     ): Promise<WorshipService> {
         const existing = await this.findWorshipServiceById(id);
 
-        if (existing.status === WorshipServiceStatus.COMPLETED) {
-            throw new BadRequestException('Não é permitido editar um culto concluído');
+        if (existing.status === WorshipServiceStatus.CONFIRMED) {
+            throw new BadRequestException('Não é permitido editar uma escala confirmada');
         }
 
         if (
@@ -1578,7 +1578,10 @@ export class WorshipScheduleService {
         dto: AssignServiceAssignmentDto,
         userId: number,
     ): Promise<ServiceAssignment> {
-        await this.findWorshipServiceById(worshipServiceId);
+        const worshipService = await this.findWorshipServiceById(worshipServiceId);
+        if (worshipService.status === WorshipServiceStatus.CONFIRMED) {
+            throw new BadRequestException('Não é permitido alterar vagas de uma escala confirmada');
+        }
 
         const memberId = dto.memberId || null;
         const servingGroupId = dto.servingGroupId || null;
@@ -1646,8 +1649,8 @@ export class WorshipScheduleService {
 
     async publishWorshipService(id: number, userId: number): Promise<WorshipService> {
         const service = await this.findWorshipServiceById(id);
-        if (service.status === WorshipServiceStatus.COMPLETED) {
-            throw new BadRequestException('Não é possível publicar um culto concluído');
+        if (service.status === WorshipServiceStatus.CONFIRMED) {
+            throw new BadRequestException('Não é possível publicar uma escala confirmada');
         }
 
         await this.worshipServiceRepository.update(id, {
@@ -1659,13 +1662,46 @@ export class WorshipScheduleService {
         return await this.findWorshipServiceById(id);
     }
 
-    async completeWorshipService(id: number, userId: number): Promise<WorshipService> {
-        await this.findWorshipServiceById(id);
+    async confirmWorshipService(id: number, userId: number): Promise<WorshipService> {
+        const service = await this.findWorshipServiceById(id);
+        if (service.status === WorshipServiceStatus.CONFIRMED) {
+            throw new BadRequestException('Esta escala já está confirmada');
+        }
+        if (service.status !== WorshipServiceStatus.PUBLISHED) {
+            throw new BadRequestException('Apenas escalas publicadas podem ser confirmadas');
+        }
+
         await this.worshipServiceRepository.update(id, {
-            status: WorshipServiceStatus.COMPLETED,
+            status: WorshipServiceStatus.CONFIRMED,
             updatedBy: userId,
         });
         return await this.findWorshipServiceById(id);
+    }
+
+    async confirmWorshipServicesForMonth(
+        month: number,
+        year: number,
+        userId: number,
+    ): Promise<{ confirmedCount: number }> {
+        const services = await this.findWorshipServicesByMonth(month, year);
+        const toConfirm = services.filter(
+            (service) => service.status === WorshipServiceStatus.PUBLISHED,
+        );
+
+        if (toConfirm.length === 0) {
+            return { confirmedCount: 0 };
+        }
+
+        const ids = toConfirm.map((service) => service.id);
+        await this.worshipServiceRepository.update(
+            { id: In(ids) },
+            {
+                status: WorshipServiceStatus.CONFIRMED,
+                updatedBy: userId,
+            },
+        );
+
+        return { confirmedCount: ids.length };
     }
 
     async copyAssignmentsFromAnotherService(
@@ -1674,8 +1710,10 @@ export class WorshipScheduleService {
         userId: number,
     ): Promise<WorshipService> {
         const targetService = await this.findWorshipServiceById(targetWorshipServiceId);
-        if (targetService.status === WorshipServiceStatus.COMPLETED) {
-            throw new BadRequestException('Não é possível copiar atribuições para culto concluído');
+        if (targetService.status === WorshipServiceStatus.CONFIRMED) {
+            throw new BadRequestException(
+                'Não é possível copiar atribuições para escala confirmada',
+            );
         }
 
         await this.findWorshipServiceById(dto.sourceWorshipServiceId);

@@ -269,6 +269,20 @@ export class WorshipSchedulesController {
         );
     }
 
+    @Patch('services/month/confirm')
+    @Permissions('gerenciar_escalas')
+    async confirmWorshipServicesForMonth(
+        @Query('month') month: string,
+        @Query('year') year: string,
+        @Request() req: any,
+    ) {
+        return await this.worshipScheduleService.confirmWorshipServicesForMonth(
+            +month,
+            +year,
+            req.user.id,
+        );
+    }
+
     @Get('services/:id')
     @Permissions('visualizar_organizacao')
     async findWorshipServiceById(@Param('id') id: string) {
@@ -307,10 +321,10 @@ export class WorshipSchedulesController {
         return await this.worshipScheduleService.publishWorshipService(+id, req.user.id);
     }
 
-    @Patch('services/:id/complete')
+    @Patch('services/:id/confirm')
     @Permissions('gerenciar_escalas')
-    async completeWorshipService(@Param('id') id: string, @Request() req: any) {
-        return await this.worshipScheduleService.completeWorshipService(+id, req.user.id);
+    async confirmWorshipService(@Param('id') id: string, @Request() req: any) {
+        return await this.worshipScheduleService.confirmWorshipService(+id, req.user.id);
     }
 
     @Patch('services/:id/copy-assignments')
