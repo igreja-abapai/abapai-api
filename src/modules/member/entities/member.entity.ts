@@ -44,11 +44,11 @@ export class Member extends IdTimestampBaseEntity {
     @JoinColumn({ name: 'addressId' })
     address: Address;
 
-    @Column({ nullable: true })
-    yearOfConversion: string;
+    @Column({ type: 'text', nullable: true })
+    conversionDate: string;
 
-    @Column({ nullable: true })
-    yearOfBaptism: string;
+    @Column({ type: 'text', nullable: true })
+    baptismDate: string;
 
     @Column({ nullable: true })
     placeOfBirth: string;
@@ -56,13 +56,13 @@ export class Member extends IdTimestampBaseEntity {
     @Column()
     occupation: string;
 
-    @Column()
+    @Column({ nullable: true })
     rg: string;
 
-    @Column()
+    @Column({ nullable: true })
     issuingBody: string;
 
-    @Column()
+    @Column({ nullable: true })
     cpf: string;
 
     @Column({ nullable: true })

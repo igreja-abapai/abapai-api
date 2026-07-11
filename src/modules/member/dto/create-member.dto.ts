@@ -79,11 +79,11 @@ export class CreateMemberDto {
 
     @IsOptional()
     @IsString()
-    yearOfConversion: string;
+    conversionDate: string;
 
     @IsOptional()
     @IsString()
-    yearOfBaptism: string;
+    baptismDate: string;
 
     @IsOptional()
     @IsString()
@@ -93,15 +93,15 @@ export class CreateMemberDto {
     @IsString()
     occupation: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     rg: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     issuingBody: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     cpf: string;
 

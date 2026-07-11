@@ -151,11 +151,11 @@ export class MemberService {
                         .orWhere("member.phone IS NULL OR TRIM(member.phone) = ''")
                         .orWhere('member.birthdate IS NULL')
                         .orWhere(
-                            "member.yearOfConversion IS NULL OR TRIM(member.yearOfConversion) = ''",
+                            "member.conversionDate IS NULL OR TRIM(member.conversionDate) = ''",
                         )
                         .orWhere("member.admissionDate IS NULL OR TRIM(member.admissionDate) = ''")
                         .orWhere(
-                            "(member.isBaptized = true AND (member.yearOfBaptism IS NULL OR TRIM(member.yearOfBaptism) = ''))",
+                            "(member.isBaptized = true AND (member.baptismDate IS NULL OR TRIM(member.baptismDate) = ''))",
                         )
                         .orWhere("address.streetName IS NULL OR TRIM(address.streetName) = ''");
                 }),

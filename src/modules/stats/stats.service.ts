@@ -13,6 +13,7 @@ import { MemberServiceCapability } from '../organization/entities/member-service
 import { ServiceRole } from '../organization/entities/service-role.entity';
 import { ServingGroup } from '../organization/entities/serving-group.entity';
 import { ServingGroupMember } from '../organization/entities/serving-group-member.entity';
+import { isWithinLastCalendarYear, parseFlexibleDate } from '../../shared/utils/flexible-date.util';
 
 @Injectable()
 export class StatsService {
@@ -112,11 +113,8 @@ export class StatsService {
                 }
             }
 
-            if (m.yearOfConversion) {
-                const year = parseInt(m.yearOfConversion, 10);
-                if (!isNaN(year) && currentYear - year <= 1) {
-                    newConverts++;
-                }
+            if (isWithinLastCalendarYear(m.conversionDate, now)) {
+                newConverts++;
             }
 
             const type = m.admissionType || 'Não informado';
@@ -512,18 +510,6 @@ export class StatsService {
     }
 
     private parseDate(dateStr: string | undefined): Date | null {
-        if (!dateStr) return null;
-        const isoDate = new Date(dateStr);
-        if (!isNaN(isoDate.getTime())) return isoDate;
-
-        const parts = dateStr.split('/');
-        if (parts.length === 3) {
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const year = parseInt(parts[2], 10);
-            const d = new Date(year, month, day);
-            if (!isNaN(d.getTime())) return d;
-        }
-        return null;
+        return parseFlexibleDate(dateStr);
     }
 }
