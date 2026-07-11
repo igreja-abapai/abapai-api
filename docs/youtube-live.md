@@ -17,14 +17,14 @@ Não há cadastro de transmissões no admin. O YouTube é a fonte da verdade.
 ```text
 YouTube Data API v3
         ↓
-Vercel Cron (a cada 10 min) → GET /internal/cron/youtube-live-sync
+GET /live/current (sync on read quando cache expira)
         ↓
 Postgres (tabela youtube_live_cache)
         ↓
-GET /live/current (cache HTTP 60s na CDN)
-        ↓
 Site Angular /ao-vivo (poll na API a cada 60s)
 ```
+
+Não há cron agendado para YouTube. A sincronização acontece quando alguém acessa `/ao-vivo` (ou quando o cache expira durante o polling na página). Sem visitantes, não há chamadas à API do YouTube.
 
 ## Variáveis de ambiente (API)
 
@@ -85,25 +85,23 @@ Resposta:
 
 Headers: `Cache-Control: public, s-maxage=60, stale-while-revalidate=120`
 
-### Cron (interno)
+### Sync manual (interno, opcional)
 
 `GET /internal/cron/youtube-live-sync`
 
-Requer header `Authorization: Bearer {CRON_SECRET}`.
-
-Agendado em `vercel.json` a cada 10 minutos.
+Requer header `Authorization: Bearer {CRON_SECRET}`. Útil para forçar sync manualmente; **não está agendado** no `vercel.json`.
 
 ## Estratégia de sincronização (economia de cota)
 
-O cron roda a cada 10 minutos, mas **nem sempre** chama o YouTube:
+O YouTube é consultado apenas quando `GET /live/current` detecta cache expirado:
 
-| Modo | Quando | Frequência real de chamadas ao YouTube |
-|------|--------|----------------------------------------|
-| `idle` | Longe da próxima live | ~4x por dia |
-| `watching` | 30 min antes até 2 h depois da live | ~a cada 3 min |
-| `live` | Transmissão ativa | Checagem leve do vídeo ~a cada 2 min |
+| Modo | Quando | Cache expira após | Chamada ao YouTube |
+|------|--------|-------------------|--------------------|
+| `idle` | Longe da próxima live | 6 h | Discovery (`search` live + upcoming) |
+| `watching` | 30 min antes até 2 h depois da live | 5 min | Discovery |
+| `live` | Transmissão ativa | 60 s | `videos.list` no vídeo conhecido (1 unidade) |
 
-Durante live, usa `videos.list` (1 unidade) em vez de `search` (100 unidades) quando possível.
+Durante live, usa `videos.list` (1 unidade) em vez de `search` (100 unidades) quando possível. O limite de 100 chamadas/dia do `search.list` só se aplica aos syncs de discovery, não ao polling durante live.
 
 ## Módulo da API
 
@@ -138,7 +136,7 @@ src/modules/youtube-live/
 
 ## Teste local
 
-Ative o polling temporário no `.env` da API (substitui o cron da Vercel em dev):
+Ative o polling temporário no `.env` da API (apenas para dev local):
 
 ```env
 YOUTUBE_LIVE_DEV_POLLING=true
