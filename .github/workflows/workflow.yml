@@ -23,7 +23,6 @@ jobs:
     - name: Install, build, run migrations and seed roles/permissions
       env:
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-          TOKEN_SECRET: ${{ secrets.TOKEN_SECRET || 'ci-build-only-secret' }}
       run: |
         npm install
         npm run migration:run
