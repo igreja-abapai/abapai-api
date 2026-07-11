@@ -22,6 +22,7 @@ import { StatsModule } from './modules/stats/stats.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { AssetsModule } from './modules/assets/assets.module';
+import { YoutubeLiveModule } from './modules/youtube-live/youtube-live.module';
 
 @Module({
     imports: [
@@ -48,12 +49,17 @@ import { AssetsModule } from './modules/assets/assets.module';
         FinanceModule,
         OrganizationModule,
         AssetsModule,
+        YoutubeLiveModule,
     ],
     controllers: [],
     providers: [DatabaseSeederService],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer): void {
+        if (process.env.APP_ENV === 'development') {
+            return;
+        }
+
         consumer.apply(RequestLoggerMiddleware).forRoutes('*');
     }
 }

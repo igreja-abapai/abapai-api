@@ -17,6 +17,10 @@
     {
       "path": "/internal/cron/birthday-notifications",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/internal/cron/youtube-live-sync",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
