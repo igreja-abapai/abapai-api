@@ -337,7 +337,7 @@ export class AssetsService {
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Inventário');
-        const columnCount = 15;
+        const columnCount = 7;
 
         const generatedAt = new Date().toLocaleString('pt-BR', {
             timeZone: 'America/Sao_Paulo',
@@ -366,21 +366,12 @@ export class AssetsService {
 
         worksheet.columns = [
             { key: 'code', width: 16 },
-            { key: 'description', width: 32 },
+            { key: 'description', width: 36 },
             { key: 'category', width: 18 },
             { key: 'location', width: 18 },
-            { key: 'department', width: 18 },
-            { key: 'responsible', width: 22 },
             { key: 'quantity', width: 8 },
-            { key: 'acquisitionDate', width: 14 },
             { key: 'acquisitionValue', width: 16 },
-            { key: 'totalValue', width: 16 },
-            { key: 'origin', width: 14 },
-            { key: 'supplierOrDonor', width: 22 },
-            { key: 'invoiceNumber', width: 22 },
             { key: 'status', width: 14 },
-            { key: 'conservationState', width: 12 },
-            { key: 'notes', width: 24 },
         ];
 
         worksheet.addRow([
@@ -388,18 +379,9 @@ export class AssetsService {
             'Descrição',
             'Categoria',
             'Local',
-            'Departamento',
-            'Responsável',
             'Qtd',
-            'Data aquisição',
-            'Valor unit. (BRL)',
-            'Valor total (BRL)',
-            'Origem',
-            'Fornecedor/Doador',
-            'Nota/cupom',
+            'Valor unit.',
             'Situação',
-            'Conservação',
-            'Observações',
         ]);
 
         const headerRow = worksheet.getRow(5);
@@ -415,57 +397,30 @@ export class AssetsService {
 
         data.forEach((asset) => {
             const unitValue = asset.acquisitionValue ? Number(asset.acquisitionValue) : 0;
-            const lineTotal = unitValue * asset.quantity;
             totalQuantity += asset.quantity;
-            totalValue += lineTotal;
+            totalValue += unitValue * asset.quantity;
 
             worksheet.addRow({
                 code: asset.code,
                 description: asset.description,
                 category: asset.category?.name ?? '',
                 location: asset.location?.name ?? '',
-                department: asset.department?.name ?? '',
-                responsible: this.formatResponsible(asset),
                 quantity: asset.quantity,
-                acquisitionDate: this.formatIsoDate(asset.acquisitionDate),
                 acquisitionValue: unitValue || '',
-                totalValue: lineTotal || '',
-                origin: asset.origin ?? '',
-                supplierOrDonor: asset.supplierOrDonor ?? '',
-                invoiceNumber: asset.invoiceNumber ?? '',
                 status: asset.status,
-                conservationState: asset.conservationState ?? '',
-                notes: asset.notes ?? '',
             });
         });
 
         worksheet.addRow([]);
-        worksheet.addRow(['Total de itens (linhas)', data.length]);
+        worksheet.addRow(['Total de itens', data.length]);
         worksheet.addRow(['Quantidade total', totalQuantity]);
         worksheet.addRow(['Valor total de aquisição', totalValue]);
 
-        const valueColumns = ['acquisitionValue', 'totalValue'];
-        valueColumns.forEach((key) => {
-            worksheet.getColumn(key).numFmt = 'R$ #,##0.00';
-        });
+        worksheet.getColumn('acquisitionValue').numFmt = 'R$ #,##0.00';
+        worksheet.getCell(`B${worksheet.rowCount}`).numFmt = 'R$ #,##0.00';
 
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
-    }
-
-    private formatResponsible(asset: Asset): string {
-        if (asset.responsibleMember?.name) {
-            return asset.responsibleMember.name;
-        }
-        return asset.responsibleName ?? '';
-    }
-
-    private formatIsoDate(value: Date | string | null | undefined): string {
-        if (!value) return '';
-        if (value instanceof Date) {
-            return value.toISOString().slice(0, 10);
-        }
-        return String(value).slice(0, 10);
     }
 
     private validateAcquisitionValue(
